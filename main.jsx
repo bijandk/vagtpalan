@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, Save, Pencil, Clock, Database, UploadCloud, DownloadCloud, LayoutDashboard, User, ListChecks, Printer, LogOut, Lock, ShieldCheck, Eye } from "lucide-react";
+import { CalendarDays, Pencil, Clock, Database, UploadCloud, DownloadCloud, LayoutDashboard, User, ListChecks, Printer, LogOut, Lock, ShieldCheck, Eye, Plane, CheckCircle2, XCircle } from "lucide-react";
 import "./style.css";
 
 const supabase = createClient("https://ytukfkficseisonpjlxm.supabase.co", "sb_publishable_xW0XlYIEUComnQR1iuWl_A_jmh4rrpI");
@@ -55,14 +55,10 @@ const defaultPlan = {
 };
 
 function copy(obj) { return JSON.parse(JSON.stringify(obj)); }
-function savedPlan() {
-  try { return JSON.parse(localStorage.getItem("vagtplan-city-v9")) || copy(defaultPlan); }
-  catch { return copy(defaultPlan); }
-}
-function savedUser() {
-  try { return JSON.parse(localStorage.getItem("vagtplan-user-v9")) || null; }
-  catch { return null; }
-}
+function savedPlan() { try { return JSON.parse(localStorage.getItem("vagtplan-city-v10")) || copy(defaultPlan); } catch { return copy(defaultPlan); } }
+function savedUser() { try { return JSON.parse(localStorage.getItem("vagtplan-user-v10")) || null; } catch { return null; } }
+function savedRequests() { try { return JSON.parse(localStorage.getItem("vagtplan-requests-v10")) || []; } catch { return []; } }
+
 function parseHours(shift) {
   if (!shift || shift.toUpperCase().includes("FRI")) return 0;
   const line = shift.split("\n")[0];
@@ -86,26 +82,22 @@ function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState("admin@surdejspizza.demo");
   const [password, setPassword] = useState("demo123");
   const [error, setError] = useState("");
-
   function login(e) {
     e.preventDefault();
     const user = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (!user) return setError("Forkert demo-email eller adgangskode");
-    localStorage.setItem("vagtplan-user-v9", JSON.stringify(user));
+    localStorage.setItem("vagtplan-user-v10", JSON.stringify(user));
     onLogin(user);
   }
-
   return (
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">🍕</div>
         <h1>Surdejspizzeria Vagtplan</h1>
-        <p>Demo-login til test. Ingen rigtige medarbejdere får email.</p>
+        <p>Demo-login. Ingen rigtige medarbejdere får email.</p>
         <form onSubmit={login}>
-          <label>Email</label>
-          <input value={email} onChange={e=>setEmail(e.target.value)} />
-          <label>Adgangskode</label>
-          <input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+          <label>Email</label><input value={email} onChange={e=>setEmail(e.target.value)} />
+          <label>Adgangskode</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
           {error && <div className="error">{error}</div>}
           <button className="dark login-btn"><Lock size={18}/> Log ind</button>
         </form>
@@ -124,6 +116,7 @@ function LoginScreen({ onLogin }) {
 function App() {
   const [user, setUser] = useState(savedUser);
   const [plan, setPlan] = useState(savedPlan);
+  const [requests, setRequests] = useState(savedRequests);
   const [weekIndex, setWeekIndex] = useState(0);
   const [dayKey, setDayKey] = useState("fre");
   const [view, setView] = useState("today");
@@ -131,6 +124,7 @@ function App() {
   const [edit, setEdit] = useState(null);
   const [text, setText] = useState("");
   const [status, setStatus] = useState("Klar");
+  const [requestForm, setRequestForm] = useState({ date: "", type: "Fri", note: "" });
 
   if (!user) return <LoginScreen onLogin={setUser} />;
 
@@ -145,34 +139,38 @@ function App() {
     return {...e, total, target, diff: total-target};
   }), [plan, user.email]);
 
-  function logout() {
-    localStorage.removeItem("vagtplan-user-v9");
-    setUser(null);
+  const visibleRequests = isAdmin ? requests : requests.filter(r => r.employee === user.name);
+
+  function logout() { localStorage.removeItem("vagtplan-user-v10"); setUser(null); }
+  function saveRequests(next) { setRequests(next); localStorage.setItem("vagtplan-requests-v10", JSON.stringify(next)); }
+  function addRequest(e) {
+    e.preventDefault();
+    if (!requestForm.date) return alert("Vælg dato");
+    const next = [{ id: Date.now(), employee: user.name, date: requestForm.date, type: requestForm.type, note: requestForm.note, status: "Afventer" }, ...requests];
+    saveRequests(next);
+    setRequestForm({ date: "", type: "Fri", note: "" });
   }
-  function canEdit(empName) {
-    return isAdmin || user.name === empName;
+  function updateRequest(id, status) {
+    saveRequests(requests.map(r => r.id === id ? {...r, status} : r));
   }
+  function deleteRequest(id) {
+    if (confirm("Slet friønske?")) saveRequests(requests.filter(r => r.id !== id));
+  }
+  function canEdit(empName) { return isAdmin || user.name === empName; }
   function openEdit(emp, weekId, d, index, value) {
     if (!canEdit(emp)) return alert("Du kan kun redigere dine egne vagter i demo-medarbejderlogin.");
-    setEdit({ emp, weekId, day: d, index });
-    setText(value);
+    setEdit({ emp, weekId, day: d, index }); setText(value);
   }
   function saveEdit() {
     const next = copy(plan);
     next[edit.weekId][edit.emp][edit.day][edit.index] = text.trim() || "FRI";
-    setPlan(next);
-    localStorage.setItem("vagtplan-city-v9", JSON.stringify(next));
-    setEdit(null);
-    setStatus("Gemt lokalt – husk Gem online");
+    setPlan(next); localStorage.setItem("vagtplan-city-v10", JSON.stringify(next)); setEdit(null); setStatus("Gemt lokalt – husk Gem online");
   }
   function deleteShift() {
     const next = copy(plan);
     next[edit.weekId][edit.emp][edit.day].splice(edit.index, 1);
     if (!next[edit.weekId][edit.emp][edit.day].length) next[edit.weekId][edit.emp][edit.day] = ["FRI"];
-    setPlan(next);
-    localStorage.setItem("vagtplan-city-v9", JSON.stringify(next));
-    setEdit(null);
-    setStatus("Slettet lokalt – husk Gem online");
+    setPlan(next); localStorage.setItem("vagtplan-city-v10", JSON.stringify(next)); setEdit(null); setStatus("Slettet lokalt – husk Gem online");
   }
   async function saveOnline() {
     if (!isAdmin) return alert("Kun admin kan gemme online i demo-versionen.");
@@ -186,16 +184,13 @@ function App() {
     const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current").maybeSingle();
     if (error) return setStatus("Fejl: " + error.message);
     if (!data) return setStatus("Ingen online plan endnu");
-    setPlan(data.data);
-    localStorage.setItem("vagtplan-city-v9", JSON.stringify(data.data));
-    setStatus("Hentet online");
+    setPlan(data.data); localStorage.setItem("vagtplan-city-v10", JSON.stringify(data.data)); setStatus("Hentet online");
   }
 
   const currentDayShifts = visibleEmployees.flatMap(emp => {
     const shifts = plan[week.id]?.[emp.name]?.[dayInfo[0]] || ["FRI"];
     return shifts.map((shift, index) => ({ emp, shift, index }));
   }).filter(x => x.shift !== "FRI");
-
   const employeeOptions = isAdmin ? employees : employees.filter(e => e.name === user.name);
 
   return (
@@ -219,9 +214,10 @@ function App() {
         <button className={view==="week" ? "active" : ""} onClick={()=>setView("week")}><CalendarDays size={18}/> Uge</button>
         <button className={view==="employee" ? "active" : ""} onClick={()=>setView("employee")}><User size={18}/> Medarbejder</button>
         <button className={view==="hours" ? "active" : ""} onClick={()=>setView("hours")}><Clock size={18}/> Timer</button>
+        <button className={view==="requests" ? "active" : ""} onClick={()=>setView("requests")}><Plane size={18}/> Friønsker</button>
       </nav>
 
-      <section className="controls">
+      {view !== "requests" && <section className="controls">
         <select value={weekIndex} onChange={e=>setWeekIndex(Number(e.target.value))}>
           {weeks.map((w,i)=><option key={w.id} value={i}>{w.title} – {w.period}</option>)}
         </select>
@@ -229,101 +225,84 @@ function App() {
           {week.days.map(([k,l,d])=><option key={k} value={k}>{l} {d}</option>)}
         </select>
         <button onClick={()=>window.print()}><Printer size={16}/> Print</button>
-      </section>
+      </section>}
 
       <main>
         <div className="role-box">
           {isAdmin ? <ShieldCheck size={20}/> : <Eye size={20}/>}
-          <span>{isAdmin ? "Admin kan se og redigere alle vagter." : "Medarbejder ser kun egne vagter i denne demo."}</span>
+          <span>{isAdmin ? "Admin kan se/redigere alle vagter og godkende friønsker." : "Medarbejder ser egne vagter og kan sende friønsker."}</span>
         </div>
 
-        {view === "today" && (
-          <section className="panel">
-            <div className="panel-title"><ListChecks size={22}/><div><h2>{dayInfo[1]} {dayInfo[2]}</h2><p>{isAdmin ? "Alle dagens vagter" : "Dine vagter denne dag"}</p></div></div>
-            <div className="today-list">
-              {currentDayShifts.length ? currentDayShifts.map((item,i)=>{
-                const s = splitShift(item.shift);
-                return <button key={i} className={"today-card "+item.emp.cls} onClick={()=>openEdit(item.emp.name, week.id, dayInfo[0], item.index, item.shift)}>
-                  <div className="avatar">{item.emp.name[0]}</div>
-                  <div><b>{item.emp.name}</b><span>{s.time}</span><small>{s.role}</small></div>
-                  <Pencil size={16}/>
-                </button>
-              }) : <p>Ingen vagter denne dag.</p>}
-            </div>
-          </section>
-        )}
+        {view === "today" && <section className="panel">
+          <div className="panel-title"><ListChecks size={22}/><div><h2>{dayInfo[1]} {dayInfo[2]}</h2><p>{isAdmin ? "Alle dagens vagter" : "Dine vagter denne dag"}</p></div></div>
+          <div className="today-list">
+            {currentDayShifts.length ? currentDayShifts.map((item,i)=>{
+              const s = splitShift(item.shift);
+              return <button key={i} className={"today-card "+item.emp.cls} onClick={()=>openEdit(item.emp.name, week.id, dayInfo[0], item.index, item.shift)}>
+                <div className="avatar">{item.emp.name[0]}</div><div><b>{item.emp.name}</b><span>{s.time}</span><small>{s.role}</small></div><Pencil size={16}/>
+              </button>
+            }) : <p>Ingen vagter denne dag.</p>}
+          </div>
+        </section>}
 
-        {view === "week" && (
-          <section className="panel">
-            <h2>{week.title} – {week.period}</h2>
-            <div className="week-grid">
-              {week.days.map(([k,l,d]) => (
-                <div className="day-card" key={k}>
-                  <h3>{l} <span>{d}</span></h3>
-                  {visibleEmployees.map(emp => (plan[week.id]?.[emp.name]?.[k] || ["FRI"]).filter(x=>x!=="FRI").map((shift,index) => {
-                    const s = splitShift(shift);
-                    return <button key={emp.name+index} className={"mini-shift "+emp.cls} onClick={()=>openEdit(emp.name, week.id, k, index, shift)}>
-                      <b>{emp.name}</b><span>{s.time}</span>
-                    </button>
-                  }))}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {view === "week" && <section className="panel">
+          <h2>{week.title} – {week.period}</h2>
+          <div className="week-grid">
+            {week.days.map(([k,l,d]) => <div className="day-card" key={k}>
+              <h3>{l} <span>{d}</span></h3>
+              {visibleEmployees.map(emp => (plan[week.id]?.[emp.name]?.[k] || ["FRI"]).filter(x=>x!=="FRI").map((shift,index) => {
+                const s = splitShift(shift);
+                return <button key={emp.name+index} className={"mini-shift "+emp.cls} onClick={()=>openEdit(emp.name, week.id, k, index, shift)}><b>{emp.name}</b><span>{s.time}</span></button>
+              }))}
+            </div>)}
+          </div>
+        </section>}
 
-        {view === "employee" && (
-          <section className="panel">
-            <div className="employee-head">
-              <select value={selectedEmployee} onChange={e=>setSelectedEmployee(e.target.value)} disabled={!isAdmin}>
-                {employeeOptions.map(e=><option key={e.name}>{e.name}</option>)}
-              </select>
-              <b>{empHours(plan, selectedEmployee).toFixed(1)} timer i perioden</b>
-            </div>
-            <div className="employee-list">
-              {weeks.map(w => w.days.map(([k,l,d]) => (plan[w.id]?.[selectedEmployee]?.[k] || ["FRI"]).map((shift,index) => (
-                <button key={w.id+k+index} className="employee-shift" onClick={()=>openEdit(selectedEmployee, w.id, k, index, shift)}>
-                  <span>{w.title} · {l} {d}</span>
-                  <b>{shift}</b>
-                </button>
-              ))))}
-            </div>
-          </section>
-        )}
+        {view === "employee" && <section className="panel">
+          <div className="employee-head">
+            <select value={selectedEmployee} onChange={e=>setSelectedEmployee(e.target.value)} disabled={!isAdmin}>
+              {employeeOptions.map(e=><option key={e.name}>{e.name}</option>)}
+            </select>
+            <b>{empHours(plan, selectedEmployee).toFixed(1)} timer i perioden</b>
+          </div>
+          <div className="employee-list">
+            {weeks.map(w => w.days.map(([k,l,d]) => (plan[w.id]?.[selectedEmployee]?.[k] || ["FRI"]).map((shift,index) => (
+              <button key={w.id+k+index} className="employee-shift" onClick={()=>openEdit(selectedEmployee, w.id, k, index, shift)}><span>{w.title} · {l} {d}</span><b>{shift}</b></button>
+            ))))}
+          </div>
+        </section>}
 
-        {view === "hours" && (
-          <section className="panel">
-            <h2>Timer & saldo</h2>
-            <div className="hours-grid">
-              {summary.map(e => (
-                <div className="hour-card" key={e.name}>
-                  <div className={"avatar "+e.cls}>{e.name[0]}</div>
-                  <h3>{e.name}</h3>
-                  <p>Planlagt: <b>{e.total.toFixed(1)} t</b></p>
-                  <p>Mål ca.: {e.target.toFixed(1)} t</p>
-                  <strong className={e.diff>0 ? "over" : "under"}>{e.diff>0?"+":""}{e.diff.toFixed(1)} t</strong>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {view === "hours" && <section className="panel">
+          <h2>Timer & saldo</h2>
+          <div className="hours-grid">
+            {summary.map(e => <div className="hour-card" key={e.name}><div className={"avatar "+e.cls}>{e.name[0]}</div><h3>{e.name}</h3><p>Planlagt: <b>{e.total.toFixed(1)} t</b></p><p>Mål ca.: {e.target.toFixed(1)} t</p><strong className={e.diff>0 ? "over" : "under"}>{e.diff>0?"+":""}{e.diff.toFixed(1)} t</strong></div>)}
+          </div>
+        </section>}
+
+        {view === "requests" && <section className="panel">
+          <div className="panel-title"><Plane size={22}/><div><h2>Friønsker / ferieønsker</h2><p>{isAdmin ? "Godkend eller afvis medarbejdernes ønsker" : "Send ønske om fri til manager"}</p></div></div>
+          {!isAdmin && <form className="request-form" onSubmit={addRequest}>
+            <label>Dato</label><input type="date" value={requestForm.date} onChange={e=>setRequestForm({...requestForm, date:e.target.value})} />
+            <label>Type</label><select value={requestForm.type} onChange={e=>setRequestForm({...requestForm, type:e.target.value})}><option>Fri</option><option>Ferie</option><option>Bytte vagt</option></select>
+            <label>Kommentar</label><textarea rows="3" value={requestForm.note} onChange={e=>setRequestForm({...requestForm, note:e.target.value})} placeholder="Skriv evt. hvorfor..." />
+            <button className="dark"><Plane size={16}/> Send friønske</button>
+          </form>}
+          <div className="request-list">
+            {visibleRequests.length ? visibleRequests.map(r => <div className="request-card" key={r.id}>
+              <div><b>{r.employee}</b><span>{r.type} · {r.date}</span><p>{r.note || "Ingen kommentar"}</p></div>
+              <strong className={r.status === "Godkendt" ? "approved" : r.status === "Afvist" ? "rejected" : "pending"}>{r.status}</strong>
+              {isAdmin && <div className="request-actions"><button onClick={()=>updateRequest(r.id,"Godkendt")}><CheckCircle2 size={16}/> Godkend</button><button onClick={()=>updateRequest(r.id,"Afvist")}><XCircle size={16}/> Afvis</button><button className="danger" onClick={()=>deleteRequest(r.id)}>Slet</button></div>}
+            </div>) : <p>Ingen friønsker endnu.</p>}
+          </div>
+        </section>}
       </main>
 
-      {edit && (
-        <div className="modalbg">
-          <div className="modal">
-            <h2>Rediger vagt</h2>
-            <p><b>{edit.emp}</b></p>
-            <textarea rows="5" value={text} onChange={e=>setText(e.target.value)} />
-            <p>Skriv fx: 16:00–21:00 på første linje. Skriv FRI for fridag.</p>
-            <div className="actions">
-              <button className="danger" onClick={deleteShift}>Slet</button>
-              <button onClick={()=>setEdit(null)}>Annuller</button>
-              <button className="dark" onClick={saveEdit}>Gem</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {edit && <div className="modalbg"><div className="modal">
+        <h2>Rediger vagt</h2><p><b>{edit.emp}</b></p>
+        <textarea rows="5" value={text} onChange={e=>setText(e.target.value)} />
+        <p>Skriv fx: 16:00–21:00 på første linje. Skriv FRI for fridag.</p>
+        <div className="actions"><button className="danger" onClick={deleteShift}>Slet</button><button onClick={()=>setEdit(null)}>Annuller</button><button className="dark" onClick={saveEdit}>Gem</button></div>
+      </div></div>}
     </div>
   );
 }
