@@ -1,9 +1,8 @@
-# Surdejspizzeria Vagtplan V3 Fixed
+# Surdejspizzeria Vagtplan V4 Timer
 
-Denne version retter hvid skærm.
-Du skal kunne se en blå boks med teksten: V3 FIXED.
-
-Funktioner:
+Ny funktion:
+- Automatisk timetælling pr. medarbejder
+- Viser planlagt timer / ønskede timer / forskel
 - Klik på vagt og rediger
 - Gem i browser
 - Nulstil

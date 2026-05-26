@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { CalendarDays, Printer, Save, RotateCcw, Pencil, Bell, UserCircle, Home, Users, Clock, MessageSquare, Plane, BarChart3, Settings } from "lucide-react";
 import "./style.css";
@@ -13,13 +13,8 @@ const employees = [
 ];
 
 const days = [
-  ["tor", "TOR", "21/5"],
-  ["fre", "FRE", "22/5"],
-  ["lor", "LØR", "23/5"],
-  ["son", "SØN", "24/5"],
-  ["man", "MAN", "25/5"],
-  ["tir", "TIR", "26/5"],
-  ["ons", "ONS", "27/5"],
+  ["tor", "TOR", "21/5"], ["fre", "FRE", "22/5"], ["lor", "LØR", "23/5"],
+  ["son", "SØN", "24/5"], ["man", "MAN", "25/5"], ["tir", "TIR", "26/5"], ["ons", "ONS", "27/5"],
 ];
 
 const defaultPlan = {
@@ -31,11 +26,29 @@ const defaultPlan = {
 };
 
 function getSavedPlan() {
-  try {
-    return JSON.parse(localStorage.getItem("vagtplan-city-v3")) || defaultPlan;
-  } catch {
-    return defaultPlan;
-  }
+  try { return JSON.parse(localStorage.getItem("vagtplan-city-v4")) || defaultPlan; }
+  catch { return defaultPlan; }
+}
+
+function parseTimeToMinutes(t) {
+  const [h, m] = t.trim().split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+function calculateShiftHours(shift) {
+  if (!shift || shift.toUpperCase().includes("FRI")) return 0;
+  const firstLine = shift.split("\n")[0];
+  const match = firstLine.match(/(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/);
+  if (!match) return 0;
+  let start = parseTimeToMinutes(match[1]);
+  let end = parseTimeToMinutes(match[2]);
+  if (end < start) end += 24 * 60;
+  return (end - start) / 60;
+}
+
+function employeeHours(plan, employeeName) {
+  const empPlan = plan[employeeName] || {};
+  return Object.values(empPlan).flat().reduce((sum, shift) => sum + calculateShiftHours(shift), 0);
 }
 
 function App() {
@@ -46,6 +59,15 @@ function App() {
 
   const shown = filter === "Alle" ? employees : employees.filter(e => e.role.toLowerCase().includes(filter.toLowerCase()));
 
+  const summary = useMemo(() => employees.map(emp => {
+    const planned = employeeHours(plan, emp.name);
+    const diff = planned - emp.weekly;
+    return { ...emp, planned, diff };
+  }), [plan]);
+
+  const totalPlanned = summary.reduce((s, e) => s + e.planned, 0);
+  const totalWanted = summary.reduce((s, e) => s + e.weekly, 0);
+
   function openEdit(emp, day, index, value) {
     setEdit({ emp, day, index });
     setText(value);
@@ -55,7 +77,7 @@ function App() {
     const next = JSON.parse(JSON.stringify(plan));
     next[edit.emp][edit.day][edit.index] = text.trim() || "FRI";
     setPlan(next);
-    localStorage.setItem("vagtplan-city-v3", JSON.stringify(next));
+    localStorage.setItem("vagtplan-city-v4", JSON.stringify(next));
     setEdit(null);
   }
 
@@ -64,19 +86,19 @@ function App() {
     next[edit.emp][edit.day].splice(edit.index, 1);
     if (!next[edit.emp][edit.day].length) next[edit.emp][edit.day] = ["FRI"];
     setPlan(next);
-    localStorage.setItem("vagtplan-city-v3", JSON.stringify(next));
+    localStorage.setItem("vagtplan-city-v4", JSON.stringify(next));
     setEdit(null);
   }
 
   function resetPlan() {
     if (confirm("Nulstil vagtplanen?")) {
       setPlan(defaultPlan);
-      localStorage.removeItem("vagtplan-city-v3");
+      localStorage.removeItem("vagtplan-city-v4");
     }
   }
 
   function savePlan() {
-    localStorage.setItem("vagtplan-city-v3", JSON.stringify(plan));
+    localStorage.setItem("vagtplan-city-v4", JSON.stringify(plan));
     alert("Gemt i denne browser.");
   }
 
@@ -115,7 +137,28 @@ function App() {
             <button onClick={() => window.print()}><Printer size={18}/> Udskriv</button>
           </div>
 
-          <div className="notice">V3 FIXED: Klik på en vagt for at redigere. Hvis du kan se denne blå boks, er den rigtige version online.</div>
+          <div className="notice">V4: Automatisk timetælling er aktiv. Klik på en vagt for at redigere.</div>
+
+          <div className="summary">
+            {summary.map(emp => (
+              <div className="summary-card" key={emp.name}>
+                <b>{emp.name}</b>
+                <span>Planlagt: {emp.planned.toFixed(1)} t</span>
+                <span>Ønske: {emp.weekly} t</span>
+                <span className={emp.diff > 0 ? "over" : emp.diff < 0 ? "under" : "ok"}>
+                  {emp.diff > 0 ? "+" : ""}{emp.diff.toFixed(1)} t
+                </span>
+              </div>
+            ))}
+            <div className="summary-card total">
+              <b>Total</b>
+              <span>Planlagt: {totalPlanned.toFixed(1)} t</span>
+              <span>Ønske: {totalWanted} t</span>
+              <span className={totalPlanned - totalWanted > 0 ? "over" : "under"}>
+                {(totalPlanned - totalWanted > 0 ? "+" : "") + (totalPlanned - totalWanted).toFixed(1)} t
+              </span>
+            </div>
+          </div>
 
           <div className="grid">
             <div className="tablebox">
@@ -128,7 +171,12 @@ function App() {
                     <tr key={emp.name}>
                       <td className="person">
                         <div className={"avatar "+emp.cls}>{emp.name[0]}</div>
-                        <div><b>{emp.name}</b><small>{emp.role}</small><small>{emp.weekly} timer/uge</small><small>Fri: {emp.off}</small></div>
+                        <div>
+                          <b>{emp.name}</b>
+                          <small>{emp.role}</small>
+                          <small>{employeeHours(plan, emp.name).toFixed(1)} / {emp.weekly} timer</small>
+                          <small>Fri: {emp.off}</small>
+                        </div>
                       </td>
                       {days.map(([key]) => (
                         <td key={key}>
@@ -146,8 +194,8 @@ function App() {
             </div>
 
             <aside className="cards">
-              <div className="card"><h2>Information</h2><p>• Klik på en vagt for at redigere</p><p>• Fredag/lørdag efter kl. 17: 3 pizzamænd + 2 service</p><p>• Lørdag før kl. 16: 2 personer</p></div>
-              <div className="card"><h2>Næste funktioner</h2><p>✅ Rediger vagter</p><p>✅ Gem i browser</p><p>⬜ Login</p><p>⬜ Database</p></div>
+              <div className="card"><h2>Timer</h2><p>• Systemet regner timer fra vagtens første linje.</p><p>• Format skal være fx: 16:00–21:00</p><p>• Skriv FRI for fridag.</p></div>
+              <div className="card"><h2>Næste funktioner</h2><p>✅ Rediger vagter</p><p>✅ Timetælling</p><p>⬜ Flere uger</p><p>⬜ Database</p><p>⬜ Login</p></div>
             </aside>
           </div>
         </section>
@@ -159,7 +207,7 @@ function App() {
             <h2>Rediger vagt</h2>
             <p><b>{edit.emp}</b></p>
             <textarea rows="5" value={text} onChange={e => setText(e.target.value)} />
-            <p className="tip">Skriv FRI hvis medarbejderen har fri.</p>
+            <p className="tip">Eksempel: 16:00–21:00 på første linje. Skriv FRI hvis medarbejderen har fri.</p>
             <div className="actions">
               <button className="danger" onClick={deleteShift}>Slet</button>
               <button onClick={() => setEdit(null)}>Annuller</button>
