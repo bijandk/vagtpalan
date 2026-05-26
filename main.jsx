@@ -1,13 +1,11 @@
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, Printer, Save, RotateCcw, Pencil, Bell, UserCircle, Home, Users, Clock, MessageSquare, Plane, BarChart3, Settings, ChevronLeft, ChevronRight, Copy, Database, UploadCloud, DownloadCloud, CheckCircle2, AlertTriangle } from "lucide-react";
+import { CalendarDays, Save, Pencil, Users, Clock, Database, UploadCloud, DownloadCloud, CheckCircle2, LayoutDashboard, User, ListChecks, Printer } from "lucide-react";
 import "./style.css";
 
-const SUPABASE_URL = "https://ytukfkficseisonpjlxm.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_xW0XlYIEUComnQR1iuWl_A_jmh4rrpI";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient("https://ytukfkficseisonpjlxm.supabase.co", "sb_publishable_xW0XlYIEUComnQR1iuWl_A_jmh4rrpI");
 
 const employees = [
   { name: "Elona", role: "Manager / Pizzabager / Servering", weekly: 33, off: "Søn + Man", cls: "purple" },
@@ -18,11 +16,11 @@ const employees = [
 ];
 
 const weeks = [
-  { id: "uge1", title: "Uge 1", period: "21. maj – 27. maj", days: [["tor","TOR","21/5"],["fre","FRE","22/5"],["lor","LØR","23/5"],["son","SØN","24/5"],["man","MAN","25/5"],["tir","TIR","26/5"],["ons","ONS","27/5"]] },
-  { id: "uge2", title: "Uge 2", period: "28. maj – 3. juni", days: [["tor","TOR","28/5"],["fre","FRE","29/5"],["lor","LØR","30/5"],["son","SØN","31/5"],["man","MAN","1/6"],["tir","TIR","2/6"],["ons","ONS","3/6"]] },
-  { id: "uge3", title: "Uge 3", period: "4. juni – 10. juni", days: [["tor","TOR","4/6"],["fre","FRE","5/6"],["lor","LØR","6/6"],["son","SØN","7/6"],["man","MAN","8/6"],["tir","TIR","9/6"],["ons","ONS","10/6"]] },
-  { id: "uge4", title: "Uge 4", period: "11. juni – 17. juni", days: [["tor","TOR","11/6"],["fre","FRE","12/6"],["lor","LØR","13/6"],["son","SØN","14/6"],["man","MAN","15/6"],["tir","TIR","16/6"],["ons","ONS","17/6"]] },
-  { id: "uge5", title: "Uge 5", period: "18. juni – 20. juni", days: [["tor","TOR","18/6"],["fre","FRE","19/6"],["lor","LØR","20/6"]] }
+  { id: "uge1", title: "Uge 1", period: "21. maj – 27. maj", days: [["tor","Torsdag","21/5"],["fre","Fredag","22/5"],["lor","Lørdag","23/5"],["son","Søndag","24/5"],["man","Mandag","25/5"],["tir","Tirsdag","26/5"],["ons","Onsdag","27/5"]] },
+  { id: "uge2", title: "Uge 2", period: "28. maj – 3. juni", days: [["tor","Torsdag","28/5"],["fre","Fredag","29/5"],["lor","Lørdag","30/5"],["son","Søndag","31/5"],["man","Mandag","1/6"],["tir","Tirsdag","2/6"],["ons","Onsdag","3/6"]] },
+  { id: "uge3", title: "Uge 3", period: "4. juni – 10. juni", days: [["tor","Torsdag","4/6"],["fre","Fredag","5/6"],["lor","Lørdag","6/6"],["son","Søndag","7/6"],["man","Mandag","8/6"],["tir","Tirsdag","9/6"],["ons","Onsdag","10/6"]] },
+  { id: "uge4", title: "Uge 4", period: "11. juni – 17. juni", days: [["tor","Torsdag","11/6"],["fre","Fredag","12/6"],["lor","Lørdag","13/6"],["son","Søndag","14/6"],["man","Mandag","15/6"],["tir","Tirsdag","16/6"],["ons","Onsdag","17/6"]] },
+  { id: "uge5", title: "Uge 5", period: "18. juni – 20. juni", days: [["tor","Torsdag","18/6"],["fre","Fredag","19/6"],["lor","Lørdag","20/6"]] }
 ];
 
 const baseWeekPlan = {
@@ -47,221 +45,194 @@ const defaultPlan = {
   }
 };
 
-function deepCopy(obj) { return JSON.parse(JSON.stringify(obj)); }
-function getSavedPlan() {
-  try { return JSON.parse(localStorage.getItem("vagtplan-city-v7")) || deepCopy(defaultPlan); }
-  catch { return deepCopy(defaultPlan); }
+function copy(obj) { return JSON.parse(JSON.stringify(obj)); }
+function savedPlan() {
+  try { return JSON.parse(localStorage.getItem("vagtplan-city-v8")) || copy(defaultPlan); }
+  catch { return copy(defaultPlan); }
 }
-function parseTimeToMinutes(t) { const [h,m]=t.trim().split(":").map(Number); return h*60+(m||0); }
-function calculateShiftHours(shift) {
+function parseHours(shift) {
   if (!shift || shift.toUpperCase().includes("FRI")) return 0;
-  const firstLine = shift.split("\n")[0];
-  const match = firstLine.match(/(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/);
-  if (!match) return 0;
-  let start = parseTimeToMinutes(match[1]);
-  let end = parseTimeToMinutes(match[2]);
-  if (end < start) end += 24*60;
-  return (end-start)/60;
+  const line = shift.split("\n")[0];
+  const m = line.match(/(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/);
+  if (!m) return 0;
+  const toMin = t => { const [h,mm] = t.split(":").map(Number); return h*60+mm; };
+  let a = toMin(m[1]), b = toMin(m[2]);
+  if (b < a) b += 1440;
+  return (b-a)/60;
 }
-function employeeHours(plan, employeeName, weekId=null) {
-  const weekIds = weekId ? [weekId] : Object.keys(plan);
-  let total = 0;
-  for (const w of weekIds) {
-    const empPlan = plan[w]?.[employeeName] || {};
-    total += Object.values(empPlan).flat().reduce((sum, shift) => sum + calculateShiftHours(shift), 0);
-  }
-  return total;
+function empHours(plan, name, weekId=null) {
+  const ids = weekId ? [weekId] : Object.keys(plan);
+  return ids.reduce((sum,w) => sum + Object.values(plan[w]?.[name] || {}).flat().reduce((s,v)=>s+parseHours(v),0),0);
+}
+function splitShift(shift) {
+  const [time, ...rest] = shift.split("\n");
+  return { time, role: rest.join(" ") };
 }
 
 function App() {
-  const [plan, setPlan] = useState(getSavedPlan);
-  const [activeWeekIndex, setActiveWeekIndex] = useState(0);
-  const [filter, setFilter] = useState("Alle");
+  const [plan, setPlan] = useState(savedPlan);
+  const [weekIndex, setWeekIndex] = useState(0);
+  const [dayKey, setDayKey] = useState("fre");
+  const [view, setView] = useState("today");
+  const [selectedEmployee, setSelectedEmployee] = useState("Elona");
   const [edit, setEdit] = useState(null);
   const [text, setText] = useState("");
-  const [syncStatus, setSyncStatus] = useState("Klar til online sync");
-  const [isOnline, setIsOnline] = useState(false);
+  const [status, setStatus] = useState("Klar");
 
-  const activeWeek = weeks[activeWeekIndex];
-  const shown = filter === "Alle" ? employees : employees.filter(e => e.role.toLowerCase().includes(filter.toLowerCase()));
+  const week = weeks[weekIndex];
+  const dayInfo = week.days.find(d => d[0] === dayKey) || week.days[0];
 
-  const summary = useMemo(() => employees.map(emp => {
-    const plannedMonth = employeeHours(plan, emp.name);
-    const plannedWeek = employeeHours(plan, emp.name, activeWeek.id);
-    const monthTarget = emp.weekly * (31 / 7);
-    return { ...emp, plannedWeek, plannedMonth, monthTarget, diffMonth: plannedMonth - monthTarget };
-  }), [plan, activeWeek.id]);
+  const summary = useMemo(() => employees.map(e => {
+    const total = empHours(plan, e.name);
+    const target = e.weekly * (31/7);
+    return {...e, total, target, diff: total-target};
+  }), [plan]);
 
-  useEffect(() => {
-    localStorage.setItem("vagtplan-city-v7", JSON.stringify(plan));
-  }, [plan]);
-
-  async function loadFromDatabase(showAlert = true) {
-    setSyncStatus("Henter online...");
-    const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current").maybeSingle();
-    if (error) {
-      setIsOnline(false);
-      setSyncStatus("Database fejl");
-      if (showAlert) alert("Database fejl: " + error.message);
-      return;
-    }
-    if (!data) {
-      await saveToDatabase(false);
-      setIsOnline(true);
-      setSyncStatus("Online plan oprettet");
-      if (showAlert) alert("Online plan blev oprettet.");
-      return;
-    }
-    setPlan(data.data);
-    localStorage.setItem("vagtplan-city-v7", JSON.stringify(data.data));
-    setIsOnline(true);
-    setSyncStatus("Hentet online");
-    if (showAlert) alert("Plan hentet online.");
+  function openEdit(emp, weekId, d, index, value) {
+    setEdit({ emp, weekId, day: d, index });
+    setText(value);
   }
-
-  async function saveToDatabase(showAlert = true) {
-    setSyncStatus("Gemmer online...");
-    const { error } = await supabase.from("schedules").upsert({ id: "city-current", data: plan, updated_at: new Date().toISOString() });
-    if (error) {
-      setIsOnline(false);
-      setSyncStatus("Kunne ikke gemme online");
-      if (showAlert) alert("Database fejl: " + error.message);
-      return false;
-    }
-    setIsOnline(true);
-    setSyncStatus("Gemt online");
-    if (showAlert) alert("Plan gemt online.");
-    return true;
-  }
-
-  function openEdit(emp, day, index, value) { setEdit({ emp, day, index, weekId: activeWeek.id }); setText(value); }
-  async function saveEdit() {
-    const next = deepCopy(plan);
+  function saveEdit() {
+    const next = copy(plan);
     next[edit.weekId][edit.emp][edit.day][edit.index] = text.trim() || "FRI";
     setPlan(next);
-    localStorage.setItem("vagtplan-city-v7", JSON.stringify(next));
+    localStorage.setItem("vagtplan-city-v8", JSON.stringify(next));
     setEdit(null);
-    setSyncStatus("Ændring gemt lokalt – tryk Gem online");
+    setStatus("Gemt lokalt – husk Gem online");
   }
   function deleteShift() {
-    const next = deepCopy(plan);
+    const next = copy(plan);
     next[edit.weekId][edit.emp][edit.day].splice(edit.index, 1);
     if (!next[edit.weekId][edit.emp][edit.day].length) next[edit.weekId][edit.emp][edit.day] = ["FRI"];
     setPlan(next);
+    localStorage.setItem("vagtplan-city-v8", JSON.stringify(next));
     setEdit(null);
-    setSyncStatus("Ændring gemt lokalt – tryk Gem online");
+    setStatus("Slettet lokalt – husk Gem online");
   }
-  function resetPlan() {
-    if (confirm("Nulstil hele vagtplanen?")) {
-      setPlan(deepCopy(defaultPlan));
-      setSyncStatus("Nulstillet lokalt – tryk Gem online");
-    }
+  async function saveOnline() {
+    setStatus("Gemmer online...");
+    const { error } = await supabase.from("schedules").upsert({ id: "city-current", data: plan, updated_at: new Date().toISOString() });
+    if (error) return setStatus("Fejl: " + error.message);
+    setStatus("Gemt online");
   }
-  function saveLocal() {
-    localStorage.setItem("vagtplan-city-v7", JSON.stringify(plan));
-    alert("Gemt lokalt i denne browser.");
+  async function loadOnline() {
+    setStatus("Henter online...");
+    const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current").maybeSingle();
+    if (error) return setStatus("Fejl: " + error.message);
+    if (!data) { await saveOnline(); return; }
+    setPlan(data.data);
+    localStorage.setItem("vagtplan-city-v8", JSON.stringify(data.data));
+    setStatus("Hentet online");
   }
-  function copyPreviousWeek() {
-    if (activeWeekIndex === 0) return alert("Du er allerede på uge 1.");
-    if (!confirm("Kopier forrige uge ind i denne uge?")) return;
-    const prevId = weeks[activeWeekIndex - 1].id;
-    const thisId = activeWeek.id;
-    const next = deepCopy(plan);
-    next[thisId] = deepCopy(plan[prevId]);
-    setPlan(next);
-    setSyncStatus("Uge kopieret lokalt – tryk Gem online");
-  }
+
+  const currentDayShifts = employees.flatMap(emp => {
+    const shifts = plan[week.id]?.[emp.name]?.[dayInfo[0]] || ["FRI"];
+    return shifts.map((shift, index) => ({ emp, shift, index }));
+  }).filter(x => x.shift !== "FRI");
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <div className="brand"><div className="pizza">🍕</div><div><b>SURDEJSPIZZERIA</b><span>CITY</span></div></div>
-        <nav>
-          {[[Home,"Oversigt"],[CalendarDays,"Vagtplan"],[Users,"Medarbejdere"],[Clock,"Timer & saldo"],[MessageSquare,"Beskeder"],[Plane,"Ferie & fridage"],[BarChart3,"Statistik"],[Settings,"Indstillinger"]].map(([Icon,label]) => (
-            <button className={label==="Vagtplan" ? "active" : ""} key={label}><Icon size={20}/>{label}</button>
-          ))}
-        </nav>
-        <div className="hours">
-          <b>Åbningstider – City</b>
-          <p><span>Søn–Tor</span><span>16:00–21:00</span></p>
-          <p><span>Fredag</span><span>16:00–22:00</span></p>
-          <p><span>Lørdag</span><span>12:00–22:00</span></p>
-          <b>Pizzamand møder 1 time før åbning</b>
+    <div className="app">
+      <header className="app-header">
+        <div>
+          <div className="brandline">🍕 Surdejspizzeria</div>
+          <h1>Vagtplan City</h1>
+          <p>21. maj – 20. juni</p>
         </div>
-      </aside>
+        <div className="sync">
+          <span><Database size={16}/> {status}</span>
+          <button onClick={loadOnline}><DownloadCloud size={16}/> Hent</button>
+          <button className="dark" onClick={saveOnline}><UploadCloud size={16}/> Gem online</button>
+        </div>
+      </header>
+
+      <nav className="view-tabs">
+        <button className={view==="today" ? "active" : ""} onClick={()=>setView("today")}><LayoutDashboard size={18}/> Dagens vagter</button>
+        <button className={view==="week" ? "active" : ""} onClick={()=>setView("week")}><CalendarDays size={18}/> Uge</button>
+        <button className={view==="employee" ? "active" : ""} onClick={()=>setView("employee")}><User size={18}/> Medarbejder</button>
+        <button className={view==="hours" ? "active" : ""} onClick={()=>setView("hours")}><Clock size={18}/> Timer</button>
+      </nav>
+
+      <section className="controls">
+        <select value={weekIndex} onChange={e=>setWeekIndex(Number(e.target.value))}>
+          {weeks.map((w,i)=><option key={w.id} value={i}>{w.title} – {w.period}</option>)}
+        </select>
+        <select value={dayKey} onChange={e=>setDayKey(e.target.value)}>
+          {week.days.map(([k,l,d])=><option key={k} value={k}>{l} {d}</option>)}
+        </select>
+        <button onClick={()=>window.print()}><Printer size={16}/> Print</button>
+      </section>
 
       <main>
-        <header>
-          <h1>Vagtplan – City</h1>
-          <div className="top"><Bell size={20}/> Notifikationer <UserCircle size={24}/> Hej, Elona</div>
-        </header>
-
-        <section>
-          <div className="toolbar">
-            <button onClick={() => setActiveWeekIndex(i => Math.max(0, i-1))}><ChevronLeft size={18}/> Forrige</button>
-            <button className="week-title"><CalendarDays size={18}/> {activeWeek.title}: {activeWeek.period}</button>
-            <button onClick={() => setActiveWeekIndex(i => Math.min(weeks.length-1, i+1))}>Næste <ChevronRight size={18}/></button>
-            <select value={filter} onChange={e => setFilter(e.target.value)}>
-              <option>Alle</option><option>Pizzaman</option><option>Servering</option><option>Service</option><option>Manager</option>
-            </select>
-            <button onClick={copyPreviousWeek}><Copy size={18}/> Kopiér forrige uge</button>
-            <button onClick={saveLocal}><Save size={18}/> Gem lokalt</button>
-            <button onClick={resetPlan}><RotateCcw size={18}/> Nulstil</button>
-            <button onClick={() => window.print()}><Printer size={18}/> Udskriv</button>
-          </div>
-
-          <div className="tabs">
-            {weeks.map((w, i) => <button key={w.id} className={i === activeWeekIndex ? "selected" : ""} onClick={() => setActiveWeekIndex(i)}>{w.title}</button>)}
-          </div>
-
-          <div className="notice">V7: Online database er forbundet. Brug “Gem online” og “Hent online” mellem telefoner.</div>
-
-          <div className={"db-panel " + (isOnline ? "online" : "")}>
-            <div>{isOnline ? <CheckCircle2 size={22}/> : <Database size={22}/>}<b>{syncStatus}</b><span>Supabase: City vagtplan</span></div>
-            <button onClick={() => loadFromDatabase(true)}><DownloadCloud size={18}/> Hent online</button>
-            <button onClick={() => saveToDatabase(true)} className="dark"><UploadCloud size={18}/> Gem online</button>
-          </div>
-
-          <div className="summary">
-            {summary.map(emp => (
-              <div className="summary-card" key={emp.name}>
-                <b>{emp.name}</b>
-                <span>Denne uge: {emp.plannedWeek.toFixed(1)} t</span>
-                <span>Hele perioden: {emp.plannedMonth.toFixed(1)} t</span>
-                <span>Mål ca.: {emp.monthTarget.toFixed(1)} t</span>
-                <span className={emp.diffMonth > 0 ? "over" : emp.diffMonth < 0 ? "under" : "ok"}>{emp.diffMonth > 0 ? "+" : ""}{emp.diffMonth.toFixed(1)} t</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid">
-            <div className="tablebox">
-              <table>
-                <thead><tr><th></th>{activeWeek.days.map(([key,label,date]) => <th key={key}>{label}<br/><span>{date}</span></th>)}</tr></thead>
-                <tbody>
-                  {shown.map(emp => (
-                    <tr key={emp.name}>
-                      <td className="person">
-                        <div className={"avatar "+emp.cls}>{emp.name[0]}</div>
-                        <div><b>{emp.name}</b><small>{emp.role}</small><small>Uge: {employeeHours(plan, emp.name, activeWeek.id).toFixed(1)} t</small><small>Fri: {emp.off}</small></div>
-                      </td>
-                      {activeWeek.days.map(([key]) => (
-                        <td key={key}>{((plan[activeWeek.id]?.[emp.name]?.[key]) || ["FRI"]).map((shift, i) => (
-                          <button key={i} onClick={() => openEdit(emp.name, key, i, shift)} className={"shift "+emp.cls}>{shift}<Pencil size={12}/></button>
-                        ))}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {view === "today" && (
+          <section className="panel">
+            <div className="panel-title"><ListChecks size={22}/><div><h2>{dayInfo[1]} {dayInfo[2]}</h2><p>Enkel oversigt over dagens bemanding</p></div></div>
+            <div className="today-list">
+              {currentDayShifts.length ? currentDayShifts.map((item,i)=>{
+                const s = splitShift(item.shift);
+                return <button key={i} className={"today-card "+item.emp.cls} onClick={()=>openEdit(item.emp.name, week.id, dayInfo[0], item.index, item.shift)}>
+                  <div className="avatar">{item.emp.name[0]}</div>
+                  <div><b>{item.emp.name}</b><span>{s.time}</span><small>{s.role}</small></div>
+                  <Pencil size={16}/>
+                </button>
+              }) : <p>Ingen vagter denne dag.</p>}
             </div>
+          </section>
+        )}
 
-            <aside className="cards">
-              <div className="card"><h2>V7 online</h2><p>• Gem online til Supabase</p><p>• Hent online på andre telefoner</p><p>• Lokal gem virker stadig</p><p>• Klar til login i næste version</p></div>
-              <div className="card"><h2>Næste</h2><p>V8: login til medarbejdere og ejer/manager.</p></div>
-            </aside>
-          </div>
-        </section>
+        {view === "week" && (
+          <section className="panel">
+            <h2>{week.title} – {week.period}</h2>
+            <div className="week-grid">
+              {week.days.map(([k,l,d]) => (
+                <div className="day-card" key={k}>
+                  <h3>{l} <span>{d}</span></h3>
+                  {employees.map(emp => (plan[week.id]?.[emp.name]?.[k] || ["FRI"]).filter(x=>x!=="FRI").map((shift,index) => {
+                    const s = splitShift(shift);
+                    return <button key={emp.name+index} className={"mini-shift "+emp.cls} onClick={()=>openEdit(emp.name, week.id, k, index, shift)}>
+                      <b>{emp.name}</b><span>{s.time}</span>
+                    </button>
+                  }))}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {view === "employee" && (
+          <section className="panel">
+            <div className="employee-head">
+              <select value={selectedEmployee} onChange={e=>setSelectedEmployee(e.target.value)}>
+                {employees.map(e=><option key={e.name}>{e.name}</option>)}
+              </select>
+              <b>{empHours(plan, selectedEmployee).toFixed(1)} timer i perioden</b>
+            </div>
+            <div className="employee-list">
+              {weeks.map(w => w.days.map(([k,l,d]) => (plan[w.id]?.[selectedEmployee]?.[k] || ["FRI"]).map((shift,index) => (
+                <button key={w.id+k+index} className="employee-shift" onClick={()=>openEdit(selectedEmployee, w.id, k, index, shift)}>
+                  <span>{w.title} · {l} {d}</span>
+                  <b>{shift}</b>
+                </button>
+              ))))}
+            </div>
+          </section>
+        )}
+
+        {view === "hours" && (
+          <section className="panel">
+            <h2>Timer & saldo</h2>
+            <div className="hours-grid">
+              {summary.map(e => (
+                <div className="hour-card" key={e.name}>
+                  <div className={"avatar "+e.cls}>{e.name[0]}</div>
+                  <h3>{e.name}</h3>
+                  <p>Planlagt: <b>{e.total.toFixed(1)} t</b></p>
+                  <p>Mål ca.: {e.target.toFixed(1)} t</p>
+                  <strong className={e.diff>0 ? "over" : "under"}>{e.diff>0?"+":""}{e.diff.toFixed(1)} t</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {edit && (
@@ -269,11 +240,11 @@ function App() {
           <div className="modal">
             <h2>Rediger vagt</h2>
             <p><b>{edit.emp}</b></p>
-            <textarea rows="5" value={text} onChange={e => setText(e.target.value)} />
-            <p className="tip">Eksempel: 16:00–21:00 på første linje. Skriv FRI hvis medarbejderen har fri.</p>
+            <textarea rows="5" value={text} onChange={e=>setText(e.target.value)} />
+            <p>Skriv fx: 16:00–21:00 på første linje. Skriv FRI for fridag.</p>
             <div className="actions">
               <button className="danger" onClick={deleteShift}>Slet</button>
-              <button onClick={() => setEdit(null)}>Annuller</button>
+              <button onClick={()=>setEdit(null)}>Annuller</button>
               <button className="dark" onClick={saveEdit}>Gem</button>
             </div>
           </div>
