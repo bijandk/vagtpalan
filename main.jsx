@@ -2,10 +2,19 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, Save, Pencil, Users, Clock, Database, UploadCloud, DownloadCloud, CheckCircle2, LayoutDashboard, User, ListChecks, Printer } from "lucide-react";
+import { CalendarDays, Save, Pencil, Clock, Database, UploadCloud, DownloadCloud, LayoutDashboard, User, ListChecks, Printer, LogOut, Lock, ShieldCheck, Eye } from "lucide-react";
 import "./style.css";
 
 const supabase = createClient("https://ytukfkficseisonpjlxm.supabase.co", "sb_publishable_xW0XlYIEUComnQR1iuWl_A_jmh4rrpI");
+
+const demoUsers = [
+  { email: "admin@surdejspizza.demo", password: "demo123", name: "Admin", role: "admin" },
+  { email: "elona@surdejspizza.demo", password: "demo123", name: "Elona", role: "employee" },
+  { email: "javad@surdejspizza.demo", password: "demo123", name: "Javad", role: "employee" },
+  { email: "nicol@surdejspizza.demo", password: "demo123", name: "Nicol", role: "employee" },
+  { email: "flor@surdejspizza.demo", password: "demo123", name: "Flor", role: "employee" },
+  { email: "doma@surdejspizza.demo", password: "demo123", name: "Doma", role: "employee" },
+];
 
 const employees = [
   { name: "Elona", role: "Manager / Pizzabager / Servering", weekly: 33, off: "Søn + Man", cls: "purple" },
@@ -47,8 +56,12 @@ const defaultPlan = {
 
 function copy(obj) { return JSON.parse(JSON.stringify(obj)); }
 function savedPlan() {
-  try { return JSON.parse(localStorage.getItem("vagtplan-city-v8")) || copy(defaultPlan); }
+  try { return JSON.parse(localStorage.getItem("vagtplan-city-v9")) || copy(defaultPlan); }
   catch { return copy(defaultPlan); }
+}
+function savedUser() {
+  try { return JSON.parse(localStorage.getItem("vagtplan-user-v9")) || null; }
+  catch { return null; }
 }
 function parseHours(shift) {
   if (!shift || shift.toUpperCase().includes("FRI")) return 0;
@@ -69,26 +82,78 @@ function splitShift(shift) {
   return { time, role: rest.join(" ") };
 }
 
+function LoginScreen({ onLogin }) {
+  const [email, setEmail] = useState("admin@surdejspizza.demo");
+  const [password, setPassword] = useState("demo123");
+  const [error, setError] = useState("");
+
+  function login(e) {
+    e.preventDefault();
+    const user = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    if (!user) return setError("Forkert demo-email eller adgangskode");
+    localStorage.setItem("vagtplan-user-v9", JSON.stringify(user));
+    onLogin(user);
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">🍕</div>
+        <h1>Surdejspizzeria Vagtplan</h1>
+        <p>Demo-login til test. Ingen rigtige medarbejdere får email.</p>
+        <form onSubmit={login}>
+          <label>Email</label>
+          <input value={email} onChange={e=>setEmail(e.target.value)} />
+          <label>Adgangskode</label>
+          <input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+          {error && <div className="error">{error}</div>}
+          <button className="dark login-btn"><Lock size={18}/> Log ind</button>
+        </form>
+        <div className="demo-list">
+          <b>Demo-brugere</b>
+          {demoUsers.map(u => <button key={u.email} onClick={()=>{setEmail(u.email); setPassword("demo123")}}>
+            {u.role === "admin" ? <ShieldCheck size={15}/> : <User size={15}/>}{u.email}
+          </button>)}
+          <small>Adgangskode: demo123</small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  const [user, setUser] = useState(savedUser);
   const [plan, setPlan] = useState(savedPlan);
   const [weekIndex, setWeekIndex] = useState(0);
   const [dayKey, setDayKey] = useState("fre");
   const [view, setView] = useState("today");
-  const [selectedEmployee, setSelectedEmployee] = useState("Elona");
+  const [selectedEmployee, setSelectedEmployee] = useState(user?.role === "employee" ? user.name : "Elona");
   const [edit, setEdit] = useState(null);
   const [text, setText] = useState("");
   const [status, setStatus] = useState("Klar");
 
+  if (!user) return <LoginScreen onLogin={setUser} />;
+
+  const isAdmin = user.role === "admin";
+  const visibleEmployees = isAdmin ? employees : employees.filter(e => e.name === user.name);
   const week = weeks[weekIndex];
   const dayInfo = week.days.find(d => d[0] === dayKey) || week.days[0];
 
-  const summary = useMemo(() => employees.map(e => {
+  const summary = useMemo(() => visibleEmployees.map(e => {
     const total = empHours(plan, e.name);
     const target = e.weekly * (31/7);
     return {...e, total, target, diff: total-target};
-  }), [plan]);
+  }), [plan, user.email]);
 
+  function logout() {
+    localStorage.removeItem("vagtplan-user-v9");
+    setUser(null);
+  }
+  function canEdit(empName) {
+    return isAdmin || user.name === empName;
+  }
   function openEdit(emp, weekId, d, index, value) {
+    if (!canEdit(emp)) return alert("Du kan kun redigere dine egne vagter i demo-medarbejderlogin.");
     setEdit({ emp, weekId, day: d, index });
     setText(value);
   }
@@ -96,7 +161,7 @@ function App() {
     const next = copy(plan);
     next[edit.weekId][edit.emp][edit.day][edit.index] = text.trim() || "FRI";
     setPlan(next);
-    localStorage.setItem("vagtplan-city-v8", JSON.stringify(next));
+    localStorage.setItem("vagtplan-city-v9", JSON.stringify(next));
     setEdit(null);
     setStatus("Gemt lokalt – husk Gem online");
   }
@@ -105,11 +170,12 @@ function App() {
     next[edit.weekId][edit.emp][edit.day].splice(edit.index, 1);
     if (!next[edit.weekId][edit.emp][edit.day].length) next[edit.weekId][edit.emp][edit.day] = ["FRI"];
     setPlan(next);
-    localStorage.setItem("vagtplan-city-v8", JSON.stringify(next));
+    localStorage.setItem("vagtplan-city-v9", JSON.stringify(next));
     setEdit(null);
     setStatus("Slettet lokalt – husk Gem online");
   }
   async function saveOnline() {
+    if (!isAdmin) return alert("Kun admin kan gemme online i demo-versionen.");
     setStatus("Gemmer online...");
     const { error } = await supabase.from("schedules").upsert({ id: "city-current", data: plan, updated_at: new Date().toISOString() });
     if (error) return setStatus("Fejl: " + error.message);
@@ -119,16 +185,18 @@ function App() {
     setStatus("Henter online...");
     const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current").maybeSingle();
     if (error) return setStatus("Fejl: " + error.message);
-    if (!data) { await saveOnline(); return; }
+    if (!data) return setStatus("Ingen online plan endnu");
     setPlan(data.data);
-    localStorage.setItem("vagtplan-city-v8", JSON.stringify(data.data));
+    localStorage.setItem("vagtplan-city-v9", JSON.stringify(data.data));
     setStatus("Hentet online");
   }
 
-  const currentDayShifts = employees.flatMap(emp => {
+  const currentDayShifts = visibleEmployees.flatMap(emp => {
     const shifts = plan[week.id]?.[emp.name]?.[dayInfo[0]] || ["FRI"];
     return shifts.map((shift, index) => ({ emp, shift, index }));
   }).filter(x => x.shift !== "FRI");
+
+  const employeeOptions = isAdmin ? employees : employees.filter(e => e.name === user.name);
 
   return (
     <div className="app">
@@ -136,12 +204,13 @@ function App() {
         <div>
           <div className="brandline">🍕 Surdejspizzeria</div>
           <h1>Vagtplan City</h1>
-          <p>21. maj – 20. juni</p>
+          <p>{isAdmin ? "Admin demo" : "Medarbejder demo"} · {user.email}</p>
         </div>
         <div className="sync">
           <span><Database size={16}/> {status}</span>
           <button onClick={loadOnline}><DownloadCloud size={16}/> Hent</button>
-          <button className="dark" onClick={saveOnline}><UploadCloud size={16}/> Gem online</button>
+          {isAdmin && <button className="dark" onClick={saveOnline}><UploadCloud size={16}/> Gem online</button>}
+          <button onClick={logout}><LogOut size={16}/> Log ud</button>
         </div>
       </header>
 
@@ -163,9 +232,14 @@ function App() {
       </section>
 
       <main>
+        <div className="role-box">
+          {isAdmin ? <ShieldCheck size={20}/> : <Eye size={20}/>}
+          <span>{isAdmin ? "Admin kan se og redigere alle vagter." : "Medarbejder ser kun egne vagter i denne demo."}</span>
+        </div>
+
         {view === "today" && (
           <section className="panel">
-            <div className="panel-title"><ListChecks size={22}/><div><h2>{dayInfo[1]} {dayInfo[2]}</h2><p>Enkel oversigt over dagens bemanding</p></div></div>
+            <div className="panel-title"><ListChecks size={22}/><div><h2>{dayInfo[1]} {dayInfo[2]}</h2><p>{isAdmin ? "Alle dagens vagter" : "Dine vagter denne dag"}</p></div></div>
             <div className="today-list">
               {currentDayShifts.length ? currentDayShifts.map((item,i)=>{
                 const s = splitShift(item.shift);
@@ -186,7 +260,7 @@ function App() {
               {week.days.map(([k,l,d]) => (
                 <div className="day-card" key={k}>
                   <h3>{l} <span>{d}</span></h3>
-                  {employees.map(emp => (plan[week.id]?.[emp.name]?.[k] || ["FRI"]).filter(x=>x!=="FRI").map((shift,index) => {
+                  {visibleEmployees.map(emp => (plan[week.id]?.[emp.name]?.[k] || ["FRI"]).filter(x=>x!=="FRI").map((shift,index) => {
                     const s = splitShift(shift);
                     return <button key={emp.name+index} className={"mini-shift "+emp.cls} onClick={()=>openEdit(emp.name, week.id, k, index, shift)}>
                       <b>{emp.name}</b><span>{s.time}</span>
@@ -201,8 +275,8 @@ function App() {
         {view === "employee" && (
           <section className="panel">
             <div className="employee-head">
-              <select value={selectedEmployee} onChange={e=>setSelectedEmployee(e.target.value)}>
-                {employees.map(e=><option key={e.name}>{e.name}</option>)}
+              <select value={selectedEmployee} onChange={e=>setSelectedEmployee(e.target.value)} disabled={!isAdmin}>
+                {employeeOptions.map(e=><option key={e.name}>{e.name}</option>)}
               </select>
               <b>{empHours(plan, selectedEmployee).toFixed(1)} timer i perioden</b>
             </div>
