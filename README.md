@@ -1,10 +1,11 @@
-# Surdejspizzeria Vagtplan V10 Friønsker
+# Surdejspizzeria Vagtplan V11 Vagtbytte
 
 Nyt:
-- Friønsker / ferieønsker
-- Medarbejder kan sende ønske
+- Vagtbytte
+- Medarbejder kan foreslå bytte
+- Modpart kan acceptere/afvise
 - Admin kan godkende/afvise/slette
-- Demo-login virker stadig
+- Friønsker og demo-login virker stadig
 
 Demo:
 admin@surdejspizza.demo / demo123
