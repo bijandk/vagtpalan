@@ -1,8 +1,15 @@
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CalendarDays, Printer, Save, RotateCcw, Pencil, Bell, UserCircle, Home, Users, Clock, MessageSquare, Plane, BarChart3, Settings, ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
+import { CalendarDays, Printer, Save, RotateCcw, Pencil, Bell, UserCircle, Home, Users, Clock, MessageSquare, Plane, BarChart3, Settings, ChevronLeft, ChevronRight, Copy, Database, UploadCloud, DownloadCloud } from "lucide-react";
 import "./style.css";
+
+// UDFYLDES SENERE NÅR DU HAR SUPABASE
+// Vigtigt: anon key er okay i frontend, men database-politik skal sættes korrekt senere.
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 const employees = [
   { name: "Elona", role: "Manager / Pizzabager / Servering", weekly: 33, off: "Søn + Man", cls: "purple" },
@@ -13,36 +20,11 @@ const employees = [
 ];
 
 const weeks = [
-  {
-    id: "uge1",
-    title: "Uge 1",
-    period: "21. maj – 27. maj",
-    days: [["tor", "TOR", "21/5"], ["fre", "FRE", "22/5"], ["lor", "LØR", "23/5"], ["son", "SØN", "24/5"], ["man", "MAN", "25/5"], ["tir", "TIR", "26/5"], ["ons", "ONS", "27/5"]]
-  },
-  {
-    id: "uge2",
-    title: "Uge 2",
-    period: "28. maj – 3. juni",
-    days: [["tor", "TOR", "28/5"], ["fre", "FRE", "29/5"], ["lor", "LØR", "30/5"], ["son", "SØN", "31/5"], ["man", "MAN", "1/6"], ["tir", "TIR", "2/6"], ["ons", "ONS", "3/6"]]
-  },
-  {
-    id: "uge3",
-    title: "Uge 3",
-    period: "4. juni – 10. juni",
-    days: [["tor", "TOR", "4/6"], ["fre", "FRE", "5/6"], ["lor", "LØR", "6/6"], ["son", "SØN", "7/6"], ["man", "MAN", "8/6"], ["tir", "TIR", "9/6"], ["ons", "ONS", "10/6"]]
-  },
-  {
-    id: "uge4",
-    title: "Uge 4",
-    period: "11. juni – 17. juni",
-    days: [["tor", "TOR", "11/6"], ["fre", "FRE", "12/6"], ["lor", "LØR", "13/6"], ["son", "SØN", "14/6"], ["man", "MAN", "15/6"], ["tir", "TIR", "16/6"], ["ons", "ONS", "17/6"]]
-  },
-  {
-    id: "uge5",
-    title: "Uge 5",
-    period: "18. juni – 20. juni",
-    days: [["tor", "TOR", "18/6"], ["fre", "FRE", "19/6"], ["lor", "LØR", "20/6"]]
-  }
+  { id: "uge1", title: "Uge 1", period: "21. maj – 27. maj", days: [["tor","TOR","21/5"],["fre","FRE","22/5"],["lor","LØR","23/5"],["son","SØN","24/5"],["man","MAN","25/5"],["tir","TIR","26/5"],["ons","ONS","27/5"]] },
+  { id: "uge2", title: "Uge 2", period: "28. maj – 3. juni", days: [["tor","TOR","28/5"],["fre","FRE","29/5"],["lor","LØR","30/5"],["son","SØN","31/5"],["man","MAN","1/6"],["tir","TIR","2/6"],["ons","ONS","3/6"]] },
+  { id: "uge3", title: "Uge 3", period: "4. juni – 10. juni", days: [["tor","TOR","4/6"],["fre","FRE","5/6"],["lor","LØR","6/6"],["son","SØN","7/6"],["man","MAN","8/6"],["tir","TIR","9/6"],["ons","ONS","10/6"]] },
+  { id: "uge4", title: "Uge 4", period: "11. juni – 17. juni", days: [["tor","TOR","11/6"],["fre","FRE","12/6"],["lor","LØR","13/6"],["son","SØN","14/6"],["man","MAN","15/6"],["tir","TIR","16/6"],["ons","ONS","17/6"]] },
+  { id: "uge5", title: "Uge 5", period: "18. juni – 20. juni", days: [["tor","TOR","18/6"],["fre","FRE","19/6"],["lor","LØR","20/6"]] }
 ];
 
 const baseWeekPlan = {
@@ -67,20 +49,12 @@ const defaultPlan = {
   }
 };
 
-function deepCopy(obj) {
-  return JSON.parse(JSON.stringify(obj));
-}
-
+function deepCopy(obj) { return JSON.parse(JSON.stringify(obj)); }
 function getSavedPlan() {
-  try { return JSON.parse(localStorage.getItem("vagtplan-city-v5")) || deepCopy(defaultPlan); }
+  try { return JSON.parse(localStorage.getItem("vagtplan-city-v6")) || deepCopy(defaultPlan); }
   catch { return deepCopy(defaultPlan); }
 }
-
-function parseTimeToMinutes(t) {
-  const [h, m] = t.trim().split(":").map(Number);
-  return h * 60 + (m || 0);
-}
-
+function parseTimeToMinutes(t) { const [h,m]=t.trim().split(":").map(Number); return h*60+(m||0); }
 function calculateShiftHours(shift) {
   if (!shift || shift.toUpperCase().includes("FRI")) return 0;
   const firstLine = shift.split("\n")[0];
@@ -88,11 +62,10 @@ function calculateShiftHours(shift) {
   if (!match) return 0;
   let start = parseTimeToMinutes(match[1]);
   let end = parseTimeToMinutes(match[2]);
-  if (end < start) end += 24 * 60;
-  return (end - start) / 60;
+  if (end < start) end += 24*60;
+  return (end-start)/60;
 }
-
-function employeeHours(plan, employeeName, weekId = null) {
+function employeeHours(plan, employeeName, weekId=null) {
   const weekIds = weekId ? [weekId] : Object.keys(plan);
   let total = 0;
   for (const w of weekIds) {
@@ -108,6 +81,7 @@ function App() {
   const [filter, setFilter] = useState("Alle");
   const [edit, setEdit] = useState(null);
   const [text, setText] = useState("");
+  const [syncStatus, setSyncStatus] = useState(supabase ? "Database klar" : "Database ikke forbundet endnu");
 
   const activeWeek = weeks[activeWeekIndex];
   const shown = filter === "Alle" ? employees : employees.filter(e => e.role.toLowerCase().includes(filter.toLowerCase()));
@@ -119,41 +93,55 @@ function App() {
     return { ...emp, plannedWeek, plannedMonth, monthTarget, diffMonth: plannedMonth - monthTarget };
   }), [plan, activeWeek.id]);
 
-  function openEdit(emp, day, index, value) {
-    setEdit({ emp, day, index, weekId: activeWeek.id });
-    setText(value);
+  useEffect(() => {
+    localStorage.setItem("vagtplan-city-v6", JSON.stringify(plan));
+  }, [plan]);
+
+  async function loadFromDatabase() {
+    if (!supabase) return alert("Supabase er ikke forbundet endnu. Vi skal først indsætte URL og anon key.");
+    setSyncStatus("Henter fra database...");
+    const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current").single();
+    if (error) {
+      setSyncStatus("Kunne ikke hente fra database");
+      return alert("Database fejl: " + error.message);
+    }
+    setPlan(data.data);
+    localStorage.setItem("vagtplan-city-v6", JSON.stringify(data.data));
+    setSyncStatus("Hentet fra database");
   }
 
+  async function saveToDatabase() {
+    if (!supabase) return alert("Supabase er ikke forbundet endnu. Vi skal først indsætte URL og anon key.");
+    setSyncStatus("Gemmer online...");
+    const { error } = await supabase.from("schedules").upsert({ id: "city-current", data: plan, updated_at: new Date().toISOString() });
+    if (error) {
+      setSyncStatus("Kunne ikke gemme online");
+      return alert("Database fejl: " + error.message);
+    }
+    setSyncStatus("Gemt online");
+  }
+
+  function openEdit(emp, day, index, value) { setEdit({ emp, day, index, weekId: activeWeek.id }); setText(value); }
   function saveEdit() {
     const next = deepCopy(plan);
     next[edit.weekId][edit.emp][edit.day][edit.index] = text.trim() || "FRI";
     setPlan(next);
-    localStorage.setItem("vagtplan-city-v5", JSON.stringify(next));
     setEdit(null);
   }
-
   function deleteShift() {
     const next = deepCopy(plan);
     next[edit.weekId][edit.emp][edit.day].splice(edit.index, 1);
     if (!next[edit.weekId][edit.emp][edit.day].length) next[edit.weekId][edit.emp][edit.day] = ["FRI"];
     setPlan(next);
-    localStorage.setItem("vagtplan-city-v5", JSON.stringify(next));
     setEdit(null);
   }
-
   function resetPlan() {
-    if (confirm("Nulstil hele vagtplanen?")) {
-      const fresh = deepCopy(defaultPlan);
-      setPlan(fresh);
-      localStorage.removeItem("vagtplan-city-v5");
-    }
+    if (confirm("Nulstil hele vagtplanen?")) setPlan(deepCopy(defaultPlan));
   }
-
   function savePlan() {
-    localStorage.setItem("vagtplan-city-v5", JSON.stringify(plan));
-    alert("Gemt i denne browser.");
+    localStorage.setItem("vagtplan-city-v6", JSON.stringify(plan));
+    alert("Gemt lokalt i denne browser.");
   }
-
   function copyPreviousWeek() {
     if (activeWeekIndex === 0) return alert("Du er allerede på uge 1.");
     if (!confirm("Kopier forrige uge ind i denne uge?")) return;
@@ -162,11 +150,7 @@ function App() {
     const next = deepCopy(plan);
     next[thisId] = deepCopy(plan[prevId]);
     setPlan(next);
-    localStorage.setItem("vagtplan-city-v5", JSON.stringify(next));
   }
-
-  function prevWeek() { setActiveWeekIndex(i => Math.max(0, i - 1)); }
-  function nextWeek() { setActiveWeekIndex(i => Math.min(weeks.length - 1, i + 1)); }
 
   return (
     <div className="layout">
@@ -194,14 +178,14 @@ function App() {
 
         <section>
           <div className="toolbar">
-            <button onClick={prevWeek}><ChevronLeft size={18}/> Forrige</button>
+            <button onClick={() => setActiveWeekIndex(i => Math.max(0, i-1))}><ChevronLeft size={18}/> Forrige</button>
             <button className="week-title"><CalendarDays size={18}/> {activeWeek.title}: {activeWeek.period}</button>
-            <button onClick={nextWeek}>Næste <ChevronRight size={18}/></button>
+            <button onClick={() => setActiveWeekIndex(i => Math.min(weeks.length-1, i+1))}>Næste <ChevronRight size={18}/></button>
             <select value={filter} onChange={e => setFilter(e.target.value)}>
               <option>Alle</option><option>Pizzaman</option><option>Servering</option><option>Service</option><option>Manager</option>
             </select>
             <button onClick={copyPreviousWeek}><Copy size={18}/> Kopiér forrige uge</button>
-            <button onClick={savePlan}><Save size={18}/> Gem</button>
+            <button onClick={savePlan}><Save size={18}/> Gem lokalt</button>
             <button onClick={resetPlan}><RotateCcw size={18}/> Nulstil</button>
             <button onClick={() => window.print()}><Printer size={18}/> Udskriv</button>
           </div>
@@ -210,7 +194,13 @@ function App() {
             {weeks.map((w, i) => <button key={w.id} className={i === activeWeekIndex ? "selected" : ""} onClick={() => setActiveWeekIndex(i)}>{w.title}</button>)}
           </div>
 
-          <div className="notice">V5: Flere uger er aktiv. Du kan skifte mellem uge 1–5 og kopiere forrige uge.</div>
+          <div className="notice">V6: Database-klar version. Næste skridt er at forbinde Supabase, så alle telefoner synkroniserer.</div>
+
+          <div className="db-panel">
+            <div><Database size={22}/><b>{syncStatus}</b><span>{supabase ? "Supabase er forbundet." : "Appen virker stadig lokalt. Supabase URL og key mangler."}</span></div>
+            <button onClick={loadFromDatabase}><DownloadCloud size={18}/> Hent online</button>
+            <button onClick={saveToDatabase} className="dark"><UploadCloud size={18}/> Gem online</button>
+          </div>
 
           <div className="summary">
             {summary.map(emp => (
@@ -219,9 +209,7 @@ function App() {
                 <span>Denne uge: {emp.plannedWeek.toFixed(1)} t</span>
                 <span>Hele perioden: {emp.plannedMonth.toFixed(1)} t</span>
                 <span>Mål ca.: {emp.monthTarget.toFixed(1)} t</span>
-                <span className={emp.diffMonth > 0 ? "over" : emp.diffMonth < 0 ? "under" : "ok"}>
-                  {emp.diffMonth > 0 ? "+" : ""}{emp.diffMonth.toFixed(1)} t
-                </span>
+                <span className={emp.diffMonth > 0 ? "over" : emp.diffMonth < 0 ? "under" : "ok"}>{emp.diffMonth > 0 ? "+" : ""}{emp.diffMonth.toFixed(1)} t</span>
               </div>
             ))}
           </div>
@@ -229,29 +217,18 @@ function App() {
           <div className="grid">
             <div className="tablebox">
               <table>
-                <thead>
-                  <tr><th></th>{activeWeek.days.map(([key,label,date]) => <th key={key}>{label}<br/><span>{date}</span></th>)}</tr>
-                </thead>
+                <thead><tr><th></th>{activeWeek.days.map(([key,label,date]) => <th key={key}>{label}<br/><span>{date}</span></th>)}</tr></thead>
                 <tbody>
                   {shown.map(emp => (
                     <tr key={emp.name}>
                       <td className="person">
                         <div className={"avatar "+emp.cls}>{emp.name[0]}</div>
-                        <div>
-                          <b>{emp.name}</b>
-                          <small>{emp.role}</small>
-                          <small>Uge: {employeeHours(plan, emp.name, activeWeek.id).toFixed(1)} t</small>
-                          <small>Fri: {emp.off}</small>
-                        </div>
+                        <div><b>{emp.name}</b><small>{emp.role}</small><small>Uge: {employeeHours(plan, emp.name, activeWeek.id).toFixed(1)} t</small><small>Fri: {emp.off}</small></div>
                       </td>
                       {activeWeek.days.map(([key]) => (
-                        <td key={key}>
-                          {((plan[activeWeek.id]?.[emp.name]?.[key]) || ["FRI"]).map((shift, i) => (
-                            <button key={i} onClick={() => openEdit(emp.name, key, i, shift)} className={"shift "+emp.cls}>
-                              {shift}<Pencil size={12}/>
-                            </button>
-                          ))}
-                        </td>
+                        <td key={key}>{((plan[activeWeek.id]?.[emp.name]?.[key]) || ["FRI"]).map((shift, i) => (
+                          <button key={i} onClick={() => openEdit(emp.name, key, i, shift)} className={"shift "+emp.cls}>{shift}<Pencil size={12}/></button>
+                        ))}</td>
                       ))}
                     </tr>
                   ))}
@@ -260,8 +237,8 @@ function App() {
             </div>
 
             <aside className="cards">
-              <div className="card"><h2>V5 funktioner</h2><p>• Uge 1–5</p><p>• Kopiér forrige uge</p><p>• Timetælling for uge og måned</p><p>• Rediger vagter</p></div>
-              <div className="card"><h2>Næste</h2><p>V6: Database, så alle telefoner ser samme plan.</p></div>
+              <div className="card"><h2>V6 funktioner</h2><p>• Database-panel</p><p>• Klar til Supabase</p><p>• Gem/hent online når forbundet</p><p>• Lokal gem virker stadig</p></div>
+              <div className="card"><h2>For at aktivere sync</h2><p>1. Opret Supabase konto</p><p>2. Lav table schedules</p><p>3. Indsæt URL + anon key</p></div>
             </aside>
           </div>
         </section>

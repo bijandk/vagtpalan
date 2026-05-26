@@ -1,9 +1,12 @@
-# Surdejspizzeria Vagtplan V5 Flere uger
+# Surdejspizzeria Vagtplan V6 Database Ready
 
 Ny funktion:
-- Uge 1–5
-- Skift mellem uger
-- Kopiér forrige uge
-- Timetælling for aktiv uge og hele perioden
-- Rediger vagter
-- Gem i browser
+- Database-panel
+- Klar til Supabase
+- Gem online / hent online knapper
+- Lokal gem virker stadig
+
+For at aktivere sync:
+1. Opret Supabase projekt
+2. Opret table schedules
+3. Indsæt SUPABASE_URL og SUPABASE_ANON_KEY i main.jsx
