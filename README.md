@@ -1,12 +1,14 @@
-# Surdejspizzeria Vagtplan V6 Database Ready
+# Surdejspizzeria Vagtplan V7 Online Sync
 
 Ny funktion:
-- Database-panel
-- Klar til Supabase
-- Gem online / hent online knapper
-- Lokal gem virker stadig
+- Supabase er forbundet
+- Gem online
+- Hent online
+- Samme plan kan bruges på flere enheder
 
-For at aktivere sync:
-1. Opret Supabase projekt
-2. Opret table schedules
-3. Indsæt SUPABASE_URL og SUPABASE_ANON_KEY i main.jsx
+Brug:
+1. Rediger en vagt
+2. Tryk Gem
+3. Tryk Gem online
+4. Åbn appen på en anden telefon/computer
+5. Tryk Hent online

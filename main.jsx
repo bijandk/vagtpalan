@@ -2,14 +2,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, Printer, Save, RotateCcw, Pencil, Bell, UserCircle, Home, Users, Clock, MessageSquare, Plane, BarChart3, Settings, ChevronLeft, ChevronRight, Copy, Database, UploadCloud, DownloadCloud } from "lucide-react";
+import { CalendarDays, Printer, Save, RotateCcw, Pencil, Bell, UserCircle, Home, Users, Clock, MessageSquare, Plane, BarChart3, Settings, ChevronLeft, ChevronRight, Copy, Database, UploadCloud, DownloadCloud, CheckCircle2, AlertTriangle } from "lucide-react";
 import "./style.css";
 
-// UDFYLDES SENERE NÅR DU HAR SUPABASE
-// Vigtigt: anon key er okay i frontend, men database-politik skal sættes korrekt senere.
-const SUPABASE_URL = "";
-const SUPABASE_ANON_KEY = "";
-const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const SUPABASE_URL = "https://ytukfkficseisonpjlxm.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_xW0XlYIEUComnQR1iuWl_A_jmh4rrpI";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const employees = [
   { name: "Elona", role: "Manager / Pizzabager / Servering", weekly: 33, off: "Søn + Man", cls: "purple" },
@@ -51,7 +49,7 @@ const defaultPlan = {
 
 function deepCopy(obj) { return JSON.parse(JSON.stringify(obj)); }
 function getSavedPlan() {
-  try { return JSON.parse(localStorage.getItem("vagtplan-city-v6")) || deepCopy(defaultPlan); }
+  try { return JSON.parse(localStorage.getItem("vagtplan-city-v7")) || deepCopy(defaultPlan); }
   catch { return deepCopy(defaultPlan); }
 }
 function parseTimeToMinutes(t) { const [h,m]=t.trim().split(":").map(Number); return h*60+(m||0); }
@@ -81,7 +79,8 @@ function App() {
   const [filter, setFilter] = useState("Alle");
   const [edit, setEdit] = useState(null);
   const [text, setText] = useState("");
-  const [syncStatus, setSyncStatus] = useState(supabase ? "Database klar" : "Database ikke forbundet endnu");
+  const [syncStatus, setSyncStatus] = useState("Klar til online sync");
+  const [isOnline, setIsOnline] = useState(false);
 
   const activeWeek = weeks[activeWeekIndex];
   const shown = filter === "Alle" ? employees : employees.filter(e => e.role.toLowerCase().includes(filter.toLowerCase()));
@@ -94,39 +93,55 @@ function App() {
   }), [plan, activeWeek.id]);
 
   useEffect(() => {
-    localStorage.setItem("vagtplan-city-v6", JSON.stringify(plan));
+    localStorage.setItem("vagtplan-city-v7", JSON.stringify(plan));
   }, [plan]);
 
-  async function loadFromDatabase() {
-    if (!supabase) return alert("Supabase er ikke forbundet endnu. Vi skal først indsætte URL og anon key.");
-    setSyncStatus("Henter fra database...");
-    const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current").single();
+  async function loadFromDatabase(showAlert = true) {
+    setSyncStatus("Henter online...");
+    const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current").maybeSingle();
     if (error) {
-      setSyncStatus("Kunne ikke hente fra database");
-      return alert("Database fejl: " + error.message);
+      setIsOnline(false);
+      setSyncStatus("Database fejl");
+      if (showAlert) alert("Database fejl: " + error.message);
+      return;
+    }
+    if (!data) {
+      await saveToDatabase(false);
+      setIsOnline(true);
+      setSyncStatus("Online plan oprettet");
+      if (showAlert) alert("Online plan blev oprettet.");
+      return;
     }
     setPlan(data.data);
-    localStorage.setItem("vagtplan-city-v6", JSON.stringify(data.data));
-    setSyncStatus("Hentet fra database");
+    localStorage.setItem("vagtplan-city-v7", JSON.stringify(data.data));
+    setIsOnline(true);
+    setSyncStatus("Hentet online");
+    if (showAlert) alert("Plan hentet online.");
   }
 
-  async function saveToDatabase() {
-    if (!supabase) return alert("Supabase er ikke forbundet endnu. Vi skal først indsætte URL og anon key.");
+  async function saveToDatabase(showAlert = true) {
     setSyncStatus("Gemmer online...");
     const { error } = await supabase.from("schedules").upsert({ id: "city-current", data: plan, updated_at: new Date().toISOString() });
     if (error) {
+      setIsOnline(false);
       setSyncStatus("Kunne ikke gemme online");
-      return alert("Database fejl: " + error.message);
+      if (showAlert) alert("Database fejl: " + error.message);
+      return false;
     }
+    setIsOnline(true);
     setSyncStatus("Gemt online");
+    if (showAlert) alert("Plan gemt online.");
+    return true;
   }
 
   function openEdit(emp, day, index, value) { setEdit({ emp, day, index, weekId: activeWeek.id }); setText(value); }
-  function saveEdit() {
+  async function saveEdit() {
     const next = deepCopy(plan);
     next[edit.weekId][edit.emp][edit.day][edit.index] = text.trim() || "FRI";
     setPlan(next);
+    localStorage.setItem("vagtplan-city-v7", JSON.stringify(next));
     setEdit(null);
+    setSyncStatus("Ændring gemt lokalt – tryk Gem online");
   }
   function deleteShift() {
     const next = deepCopy(plan);
@@ -134,12 +149,16 @@ function App() {
     if (!next[edit.weekId][edit.emp][edit.day].length) next[edit.weekId][edit.emp][edit.day] = ["FRI"];
     setPlan(next);
     setEdit(null);
+    setSyncStatus("Ændring gemt lokalt – tryk Gem online");
   }
   function resetPlan() {
-    if (confirm("Nulstil hele vagtplanen?")) setPlan(deepCopy(defaultPlan));
+    if (confirm("Nulstil hele vagtplanen?")) {
+      setPlan(deepCopy(defaultPlan));
+      setSyncStatus("Nulstillet lokalt – tryk Gem online");
+    }
   }
-  function savePlan() {
-    localStorage.setItem("vagtplan-city-v6", JSON.stringify(plan));
+  function saveLocal() {
+    localStorage.setItem("vagtplan-city-v7", JSON.stringify(plan));
     alert("Gemt lokalt i denne browser.");
   }
   function copyPreviousWeek() {
@@ -150,6 +169,7 @@ function App() {
     const next = deepCopy(plan);
     next[thisId] = deepCopy(plan[prevId]);
     setPlan(next);
+    setSyncStatus("Uge kopieret lokalt – tryk Gem online");
   }
 
   return (
@@ -185,7 +205,7 @@ function App() {
               <option>Alle</option><option>Pizzaman</option><option>Servering</option><option>Service</option><option>Manager</option>
             </select>
             <button onClick={copyPreviousWeek}><Copy size={18}/> Kopiér forrige uge</button>
-            <button onClick={savePlan}><Save size={18}/> Gem lokalt</button>
+            <button onClick={saveLocal}><Save size={18}/> Gem lokalt</button>
             <button onClick={resetPlan}><RotateCcw size={18}/> Nulstil</button>
             <button onClick={() => window.print()}><Printer size={18}/> Udskriv</button>
           </div>
@@ -194,12 +214,12 @@ function App() {
             {weeks.map((w, i) => <button key={w.id} className={i === activeWeekIndex ? "selected" : ""} onClick={() => setActiveWeekIndex(i)}>{w.title}</button>)}
           </div>
 
-          <div className="notice">V6: Database-klar version. Næste skridt er at forbinde Supabase, så alle telefoner synkroniserer.</div>
+          <div className="notice">V7: Online database er forbundet. Brug “Gem online” og “Hent online” mellem telefoner.</div>
 
-          <div className="db-panel">
-            <div><Database size={22}/><b>{syncStatus}</b><span>{supabase ? "Supabase er forbundet." : "Appen virker stadig lokalt. Supabase URL og key mangler."}</span></div>
-            <button onClick={loadFromDatabase}><DownloadCloud size={18}/> Hent online</button>
-            <button onClick={saveToDatabase} className="dark"><UploadCloud size={18}/> Gem online</button>
+          <div className={"db-panel " + (isOnline ? "online" : "")}>
+            <div>{isOnline ? <CheckCircle2 size={22}/> : <Database size={22}/>}<b>{syncStatus}</b><span>Supabase: City vagtplan</span></div>
+            <button onClick={() => loadFromDatabase(true)}><DownloadCloud size={18}/> Hent online</button>
+            <button onClick={() => saveToDatabase(true)} className="dark"><UploadCloud size={18}/> Gem online</button>
           </div>
 
           <div className="summary">
@@ -237,8 +257,8 @@ function App() {
             </div>
 
             <aside className="cards">
-              <div className="card"><h2>V6 funktioner</h2><p>• Database-panel</p><p>• Klar til Supabase</p><p>• Gem/hent online når forbundet</p><p>• Lokal gem virker stadig</p></div>
-              <div className="card"><h2>For at aktivere sync</h2><p>1. Opret Supabase konto</p><p>2. Lav table schedules</p><p>3. Indsæt URL + anon key</p></div>
+              <div className="card"><h2>V7 online</h2><p>• Gem online til Supabase</p><p>• Hent online på andre telefoner</p><p>• Lokal gem virker stadig</p><p>• Klar til login i næste version</p></div>
+              <div className="card"><h2>Næste</h2><p>V8: login til medarbejdere og ejer/manager.</p></div>
             </aside>
           </div>
         </section>
