@@ -1,12 +1,10 @@
-# Surdejspizzeria Vagtplan Webapp V2
+# Surdejspizzeria Vagtplan V3 Fixed
 
-Ny funktion:
-- Klik på en vagt og rediger den
-- Gem i browseren
-- Nulstil vagtplan
-- Print stadig muligt
+Denne version retter hvid skærm.
+Du skal kunne se en blå boks med teksten: V3 FIXED.
 
-Vercel:
-Framework: Vite
-Build Command: npm run build
-Output Directory: dist
+Funktioner:
+- Klik på vagt og rediger
+- Gem i browser
+- Nulstil
+- Udskriv
