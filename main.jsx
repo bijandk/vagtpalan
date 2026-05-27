@@ -27,6 +27,7 @@ const demoUsers = [
 ];
 
 const employees = [
+  { name: "Bijan", role: "Pizzaman", weekly: 37, cls: "blue" },
   { name: "Elona", role: "Manager / Pizzabager / Servering", weekly: 33, cls: "purple" },
   { name: "Javad", role: "Pizzaman", weekly: 37, cls: "blue" },
   { name: "Nicol", role: "Pizzaman", weekly: 31, cls: "green" },
