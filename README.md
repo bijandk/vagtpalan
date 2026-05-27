@@ -1,8 +1,8 @@
-# Surdejspizzeria Vagtplan V14.2
+# Surdejspizzeria Vagtplan V14.4a
 
 Nyt:
-- Tilføj medarbejder direkte i appen
-- Medarbejder får demo-login med email + demo123
-- Ny medarbejder får automatisk standardvagter i City og Risskov
-- Popup redigering fra V14.1 bevares
-- Online gem/hent bevares
+- Automatisk lokal gem
+- Automatisk online gem til Supabase for admin
+- Ingen Gem online-knap
+- Hent online-knap bevares
+- Popup redigering og tilføj medarbejder bevares
