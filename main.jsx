@@ -17,6 +17,7 @@ const restaurants = [
 ];
 
 const demoUsers = [
+  { email: "bijan_dk@yahoo.com", password: "demo123", name: "Bijan", role: "employee" },
   { email: "admin@surdejspizza.demo", password: "demo123", name: "Admin", role: "admin" },
   { email: "elona@surdejspizza.demo", password: "demo123", name: "Elona", role: "employee" },
   { email: "javad@surdejspizza.demo", password: "demo123", name: "Javad", role: "employee" },
