@@ -1,11 +1,10 @@
-# Surdejspizzeria Vagtplan V12 Tidsregistrering
+# Surdejspizzeria Vagtplan V13 Flere restauranter
 
 Nyt:
-- Stempelur / tidsregistrering
-- Medarbejder kan checke ind og checke ud
-- Admin kan se og slette tidsregistreringer
-- Automatisk beregning af registrerede timer
-- Vagtplan, friønsker og vagtbytte bevares i lettere version
+- Flere restauranter: City og Risskov
+- Separat vagtplan pr. afdeling
+- Separat friønsker, vagtbytte og tidsregistrering pr. afdeling
+- Online gem/hent gemmer samlet system
 
 Demo:
 admin@surdejspizza.demo / demo123
