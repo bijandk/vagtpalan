@@ -1,8 +1,11 @@
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
-import { CalendarDays, Pencil, Clock, Database, UploadCloud, DownloadCloud, LayoutDashboard, User, ListChecks, Printer, LogOut, Lock, ShieldCheck, Eye, Plane, CheckCircle2, XCircle, Repeat2 } from "lucide-react";
+import {
+  CalendarDays, Clock, Database, UploadCloud, DownloadCloud, LayoutDashboard, User,
+  Printer, LogOut, Lock, ShieldCheck, Eye, Plane, Repeat2, Timer, PlayCircle, StopCircle, Trash2
+} from "lucide-react";
 import "./style.css";
 
 const supabase = createClient("https://ytukfkficseisonpjlxm.supabase.co", "sb_publishable_xW0XlYIEUComnQR1iuWl_A_jmh4rrpI");
@@ -17,345 +20,264 @@ const demoUsers = [
 ];
 
 const employees = [
-  { name: "Elona", role: "Manager / Pizzabager / Servering", weekly: 33, off: "Søn + Man", cls: "purple" },
-  { name: "Javad", role: "Pizzaman", weekly: 37, off: "Torsdag", cls: "blue" },
-  { name: "Nicol", role: "Pizzaman", weekly: 31, off: "Tirs + Ons", cls: "green" },
-  { name: "Flor", role: "Servering", weekly: 37, off: "Fleksibel", cls: "orange" },
-  { name: "Doma", role: "Service", weekly: 20, off: "Fleksibel", cls: "pink" },
+  { name: "Elona", role: "Manager / Pizzabager / Servering", weekly: 33, cls: "purple" },
+  { name: "Javad", role: "Pizzaman", weekly: 37, cls: "blue" },
+  { name: "Nicol", role: "Pizzaman", weekly: 31, cls: "green" },
+  { name: "Flor", role: "Servering", weekly: 37, cls: "orange" },
+  { name: "Doma", role: "Service", weekly: 20, cls: "pink" },
 ];
 
-const weeks = [
-  { id: "uge1", title: "Uge 1", period: "21. maj – 27. maj", days: [["tor","Torsdag","21/5"],["fre","Fredag","22/5"],["lor","Lørdag","23/5"],["son","Søndag","24/5"],["man","Mandag","25/5"],["tir","Tirsdag","26/5"],["ons","Onsdag","27/5"]] },
-  { id: "uge2", title: "Uge 2", period: "28. maj – 3. juni", days: [["tor","Torsdag","28/5"],["fre","Fredag","29/5"],["lor","Lørdag","30/5"],["son","Søndag","31/5"],["man","Mandag","1/6"],["tir","Tirsdag","2/6"],["ons","Onsdag","3/6"]] },
-  { id: "uge3", title: "Uge 3", period: "4. juni – 10. juni", days: [["tor","Torsdag","4/6"],["fre","Fredag","5/6"],["lor","Lørdag","6/6"],["son","Søndag","7/6"],["man","Mandag","8/6"],["tir","Tirsdag","9/6"],["ons","Onsdag","10/6"]] },
-  { id: "uge4", title: "Uge 4", period: "11. juni – 17. juni", days: [["tor","Torsdag","11/6"],["fre","Fredag","12/6"],["lor","Lørdag","13/6"],["son","Søndag","14/6"],["man","Mandag","15/6"],["tir","Tirsdag","16/6"],["ons","Onsdag","17/6"]] },
-  { id: "uge5", title: "Uge 5", period: "18. juni – 20. juni", days: [["tor","Torsdag","18/6"],["fre","Fredag","19/6"],["lor","Lørdag","20/6"]] }
+const days = [
+  ["tor", "Torsdag", "21/5"], ["fre", "Fredag", "22/5"], ["lor", "Lørdag", "23/5"],
+  ["son", "Søndag", "24/5"], ["man", "Mandag", "25/5"], ["tir", "Tirsdag", "26/5"], ["ons", "Onsdag", "27/5"]
 ];
 
-const baseWeekPlan = {
-  Elona: { tor:["16:00–21:00\nManager / Bager / Service"], fre:["16:00–22:00\nManager / Bager / Service"], lor:["16:00–22:00\nManager / Bager / Service"], son:["FRI"], man:["FRI"], tir:["16:00–21:00\nManager / Bager / Service"], ons:["16:00–21:00\nManager / Bager / Service"] },
+const defaultPlan = {
+  Elona: { tor:["16:00–21:00\nManager"], fre:["16:00–22:00\nManager"], lor:["16:00–22:00\nManager"], son:["FRI"], man:["FRI"], tir:["16:00–21:00\nManager"], ons:["16:00–21:00\nManager"] },
   Javad: { tor:["FRI"], fre:["15:00–22:00\nPizzaman"], lor:["11:00–16:00\nPizzaman","17:00–22:00\nPizzaman"], son:["15:00–21:00\nPizzaman"], man:["15:00–21:00\nPizzaman"], tir:["15:00–21:00\nPizzaman"], ons:["15:00–21:00\nPizzaman"] },
   Nicol: { tor:["15:00–21:00\nPizzaman"], fre:["15:00–22:00\nPizzaman"], lor:["17:00–22:00\nPizzaman"], son:["15:00–21:00\nPizzaman"], man:["15:00–21:00\nPizzaman"], tir:["FRI"], ons:["FRI"] },
   Flor: { tor:["16:00–21:00\nServering"], fre:["16:00–22:00\nServering"], lor:["12:00–16:00\nServering","17:00–22:00\nServering"], son:["16:00–21:00\nServering"], man:["16:00–21:00\nServering"], tir:["16:00–21:00\nServering"], ons:["16:00–21:00\nServering"] },
   Doma: { tor:["FRI"], fre:["17:00–22:00\nService"], lor:["17:00–22:00\nService"], son:["FRI"], man:["16:00–21:00\nService"], tir:["FRI"], ons:["16:00–21:00\nService"] },
 };
 
-const defaultPlan = {
-  uge1: baseWeekPlan,
-  uge2: baseWeekPlan,
-  uge3: baseWeekPlan,
-  uge4: baseWeekPlan,
-  uge5: {
-    Elona: { tor:["16:00–21:00\nManager / Bager / Service"], fre:["16:00–22:00\nManager / Bager / Service"], lor:["16:00–22:00\nManager / Bager / Service"] },
-    Javad: { tor:["FRI"], fre:["15:00–22:00\nPizzaman"], lor:["11:00–16:00\nPizzaman","17:00–22:00\nPizzaman"] },
-    Nicol: { tor:["15:00–21:00\nPizzaman"], fre:["15:00–22:00\nPizzaman"], lor:["17:00–22:00\nPizzaman"] },
-    Flor: { tor:["16:00–21:00\nServering"], fre:["16:00–22:00\nServering"], lor:["12:00–16:00\nServering","17:00–22:00\nServering"] },
-    Doma: { tor:["FRI"], fre:["17:00–22:00\nService"], lor:["17:00–22:00\nService"] },
-  }
-};
-
-function copy(obj) { return JSON.parse(JSON.stringify(obj)); }
-function savedPlan() { try { return JSON.parse(localStorage.getItem("vagtplan-city-v11")) || copy(defaultPlan); } catch { return copy(defaultPlan); } }
-function savedUser() { try { return JSON.parse(localStorage.getItem("vagtplan-user-v11")) || null; } catch { return null; } }
-function savedRequests() { try { return JSON.parse(localStorage.getItem("vagtplan-requests-v11")) || []; } catch { return []; } }
-function savedSwaps() { try { return JSON.parse(localStorage.getItem("vagtplan-swaps-v11")) || []; } catch { return []; } }
-
-function parseHours(shift) {
-  if (!shift || shift.toUpperCase().includes("FRI")) return 0;
-  const line = shift.split("\n")[0];
-  const m = line.match(/(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/);
+function load(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; }
+}
+function save(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+function format(ts) {
+  if (!ts) return "-";
+  return new Date(ts).toLocaleString("da-DK", { dateStyle: "short", timeStyle: "short" });
+}
+function hours(rec) {
+  if (!rec.start || !rec.end) return 0;
+  return Math.max(0, (new Date(rec.end) - new Date(rec.start)) / 36e5);
+}
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+function parseShiftHours(txt) {
+  if (!txt || txt.includes("FRI")) return 0;
+  const m = txt.match(/(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/);
   if (!m) return 0;
-  const toMin = t => { const [h,mm] = t.split(":").map(Number); return h*60+mm; };
+  const toMin = t => { const [h, mm] = t.split(":").map(Number); return h * 60 + mm; };
   let a = toMin(m[1]), b = toMin(m[2]);
   if (b < a) b += 1440;
-  return (b-a)/60;
-}
-function empHours(plan, name, weekId=null) {
-  const ids = weekId ? [weekId] : Object.keys(plan);
-  return ids.reduce((sum,w) => sum + Object.values(plan[w]?.[name] || {}).flat().reduce((s,v)=>s+parseHours(v),0),0);
-}
-function splitShift(shift) {
-  const [time, ...rest] = shift.split("\n");
-  return { time, role: rest.join(" ") };
-}
-function findWeekDayLabel(weekId, dayKey) {
-  const w = weeks.find(x => x.id === weekId);
-  const d = w?.days.find(x => x[0] === dayKey);
-  return d ? `${w.title} · ${d[1]} ${d[2]}` : `${weekId} · ${dayKey}`;
+  return (b - a) / 60;
 }
 
-function LoginScreen({ onLogin }) {
+function Login({ onLogin }) {
   const [email, setEmail] = useState("admin@surdejspizza.demo");
   const [password, setPassword] = useState("demo123");
   const [error, setError] = useState("");
-  function login(e) {
+
+  function submit(e) {
     e.preventDefault();
     const user = demoUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-    if (!user) return setError("Forkert demo-email eller adgangskode");
-    localStorage.setItem("vagtplan-user-v11", JSON.stringify(user));
+    if (!user) return setError("Forkert demo-login");
+    save("vagtplan-user-v12", user);
     onLogin(user);
   }
-  return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-logo">🍕</div>
-        <h1>Surdejspizzeria Vagtplan</h1>
-        <p>Demo-login. Ingen rigtige medarbejdere får email.</p>
-        <form onSubmit={login}>
-          <label>Email</label><input value={email} onChange={e=>setEmail(e.target.value)} />
-          <label>Adgangskode</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
-          {error && <div className="error">{error}</div>}
-          <button className="dark login-btn"><Lock size={18}/> Log ind</button>
-        </form>
-        <div className="demo-list">
-          <b>Demo-brugere</b>
-          {demoUsers.map(u => <button key={u.email} onClick={()=>{setEmail(u.email); setPassword("demo123")}}>
-            {u.role === "admin" ? <ShieldCheck size={15}/> : <User size={15}/>}{u.email}
-          </button>)}
-          <small>Adgangskode: demo123</small>
-        </div>
-      </div>
+
+  return <div className="login-page"><div className="login-card">
+    <div className="login-logo">🍕</div>
+    <h1>Surdejspizzeria Vagtplan</h1>
+    <p>Demo-login. Ingen rigtige emails sendes.</p>
+    <form onSubmit={submit}>
+      <label>Email</label><input value={email} onChange={e=>setEmail(e.target.value)} />
+      <label>Kode</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+      {error && <div className="error">{error}</div>}
+      <button className="dark login-btn"><Lock size={18}/> Log ind</button>
+    </form>
+    <div className="demo-list">
+      <b>Demo-brugere</b>
+      {demoUsers.map(u => <button key={u.email} onClick={()=>{setEmail(u.email); setPassword("demo123")}}>
+        {u.role === "admin" ? <ShieldCheck size={15}/> : <User size={15}/>} {u.email}
+      </button>)}
     </div>
-  );
+  </div></div>
 }
 
 function App() {
-  const [user, setUser] = useState(savedUser);
-  const [plan, setPlan] = useState(savedPlan);
-  const [requests, setRequests] = useState(savedRequests);
-  const [swaps, setSwaps] = useState(savedSwaps);
-  const [weekIndex, setWeekIndex] = useState(0);
-  const [dayKey, setDayKey] = useState("fre");
+  const [user, setUser] = useState(load("vagtplan-user-v12", null));
+  const [plan, setPlan] = useState(load("vagtplan-plan-v12", defaultPlan));
+  const [timeRecords, setTimeRecords] = useState(load("vagtplan-time-v12", []));
+  const [requests, setRequests] = useState(load("vagtplan-requests-v12", []));
+  const [swaps, setSwaps] = useState(load("vagtplan-swaps-v12", []));
   const [view, setView] = useState("today");
-  const [selectedEmployee, setSelectedEmployee] = useState(user?.role === "employee" ? user.name : "Elona");
-  const [edit, setEdit] = useState(null);
-  const [text, setText] = useState("");
+  const [day, setDay] = useState("fre");
   const [status, setStatus] = useState("Klar");
-  const [requestForm, setRequestForm] = useState({ date: "", type: "Fri", note: "" });
-  const [swapForm, setSwapForm] = useState({ weekId: "uge1", day: "fre", shiftIndex: 0, targetEmployee: "Elona", note: "" });
+  const [requestText, setRequestText] = useState("");
+  const [requestDate, setRequestDate] = useState("");
+  const [swapTarget, setSwapTarget] = useState("Elona");
+  const [swapNote, setSwapNote] = useState("");
 
-  if (!user) return <LoginScreen onLogin={setUser} />;
+  if (!user) return <Login onLogin={setUser} />;
 
   const isAdmin = user.role === "admin";
   const visibleEmployees = isAdmin ? employees : employees.filter(e => e.name === user.name);
-  const week = weeks[weekIndex];
-  const dayInfo = week.days.find(d => d[0] === dayKey) || week.days[0];
+  const activeRecord = timeRecords.find(r => r.employee === user.name && !r.end);
+  const visibleTime = isAdmin ? timeRecords : timeRecords.filter(r => r.employee === user.name);
+  const totalTime = visibleTime.reduce((s, r) => s + hours(r), 0);
 
-  const summary = useMemo(() => visibleEmployees.map(e => {
-    const total = empHours(plan, e.name);
-    const target = e.weekly * (31/7);
-    return {...e, total, target, diff: total-target};
-  }), [plan, user.email]);
-
-  const visibleRequests = isAdmin ? requests : requests.filter(r => r.employee === user.name);
-  const visibleSwaps = isAdmin ? swaps : swaps.filter(s => s.employee === user.name || s.targetEmployee === user.name);
-  const swapEmployee = isAdmin ? selectedEmployee : user.name;
-  const swapWeek = weeks.find(w => w.id === swapForm.weekId) || weeks[0];
-  const swapDays = swapWeek.days;
-  const ownShiftsForSwap = (plan[swapForm.weekId]?.[swapEmployee]?.[swapForm.day] || ["FRI"]).filter(x => x !== "FRI");
-  const targetOptions = employees.filter(e => e.name !== swapEmployee);
-
-  function logout() { localStorage.removeItem("vagtplan-user-v11"); setUser(null); }
-  function saveRequests(next) { setRequests(next); localStorage.setItem("vagtplan-requests-v11", JSON.stringify(next)); }
-  function saveSwaps(next) { setSwaps(next); localStorage.setItem("vagtplan-swaps-v11", JSON.stringify(next)); }
-  function addRequest(e) {
-    e.preventDefault();
-    if (!requestForm.date) return alert("Vælg dato");
-    const next = [{ id: Date.now(), employee: user.name, date: requestForm.date, type: requestForm.type, note: requestForm.note, status: "Afventer" }, ...requests];
-    saveRequests(next); setRequestForm({ date: "", type: "Fri", note: "" });
-  }
-  function updateRequest(id, status) { saveRequests(requests.map(r => r.id === id ? {...r, status} : r)); }
-  function deleteRequest(id) { if (confirm("Slet friønske?")) saveRequests(requests.filter(r => r.id !== id)); }
-  function addSwap(e) {
-    e.preventDefault();
-    if (!ownShiftsForSwap.length) return alert("Der er ingen vagt at bytte på denne dag.");
-    const selectedShift = ownShiftsForSwap[Number(swapForm.shiftIndex)] || ownShiftsForSwap[0];
-    const next = [{
-      id: Date.now(),
-      employee: swapEmployee,
-      targetEmployee: swapForm.targetEmployee,
-      weekId: swapForm.weekId,
-      day: swapForm.day,
-      shift: selectedShift,
-      note: swapForm.note,
-      status: "Afventer",
-      targetStatus: "Afventer"
-    }, ...swaps];
-    saveSwaps(next);
-    setSwapForm({...swapForm, note: ""});
-  }
-  function updateSwap(id, patch) { saveSwaps(swaps.map(s => s.id === id ? {...s, ...patch} : s)); }
-  function deleteSwap(id) { if (confirm("Slet vagtbytte?")) saveSwaps(swaps.filter(s => s.id !== id)); }
-  function canEdit(empName) { return isAdmin || user.name === empName; }
-  function openEdit(emp, weekId, d, index, value) {
-    if (!canEdit(emp)) return alert("Du kan kun redigere dine egne vagter i demo-medarbejderlogin.");
-    setEdit({ emp, weekId, day: d, index }); setText(value);
-  }
-  function saveEdit() {
-    const next = copy(plan);
-    next[edit.weekId][edit.emp][edit.day][edit.index] = text.trim() || "FRI";
-    setPlan(next); localStorage.setItem("vagtplan-city-v11", JSON.stringify(next)); setEdit(null); setStatus("Gemt lokalt – husk Gem online");
-  }
-  function deleteShift() {
-    const next = copy(plan);
-    next[edit.weekId][edit.emp][edit.day].splice(edit.index, 1);
-    if (!next[edit.weekId][edit.emp][edit.day].length) next[edit.weekId][edit.emp][edit.day] = ["FRI"];
-    setPlan(next); localStorage.setItem("vagtplan-city-v11", JSON.stringify(next)); setEdit(null); setStatus("Slettet lokalt – husk Gem online");
+  function logout() {
+    localStorage.removeItem("vagtplan-user-v12");
+    setUser(null);
   }
   async function saveOnline() {
-    if (!isAdmin) return alert("Kun admin kan gemme online i demo-versionen.");
+    if (!isAdmin) return alert("Kun admin kan gemme online.");
     setStatus("Gemmer online...");
-    const { error } = await supabase.from("schedules").upsert({ id: "city-current", data: plan, updated_at: new Date().toISOString() });
+    const payload = { plan, requests, swaps, timeRecords };
+    const { error } = await supabase.from("schedules").upsert({ id: "city-current-v12", data: payload, updated_at: new Date().toISOString() });
     if (error) return setStatus("Fejl: " + error.message);
     setStatus("Gemt online");
   }
   async function loadOnline() {
     setStatus("Henter online...");
-    const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current").maybeSingle();
+    const { data, error } = await supabase.from("schedules").select("data").eq("id", "city-current-v12").maybeSingle();
     if (error) return setStatus("Fejl: " + error.message);
-    if (!data) return setStatus("Ingen online plan endnu");
-    setPlan(data.data); localStorage.setItem("vagtplan-city-v11", JSON.stringify(data.data)); setStatus("Hentet online");
+    if (!data) return setStatus("Ingen V12 online-data endnu");
+    setPlan(data.data.plan || defaultPlan);
+    setRequests(data.data.requests || []);
+    setSwaps(data.data.swaps || []);
+    setTimeRecords(data.data.timeRecords || []);
+    save("vagtplan-plan-v12", data.data.plan || defaultPlan);
+    save("vagtplan-requests-v12", data.data.requests || []);
+    save("vagtplan-swaps-v12", data.data.swaps || []);
+    save("vagtplan-time-v12", data.data.timeRecords || []);
+    setStatus("Hentet online");
+  }
+  function checkIn() {
+    if (isAdmin) return alert("Log ind som medarbejder for at teste stempelur.");
+    if (activeRecord) return alert("Du er allerede checket ind.");
+    const next = [{ id: Date.now(), employee: user.name, date: today(), start: new Date().toISOString(), end: null }, ...timeRecords];
+    setTimeRecords(next); save("vagtplan-time-v12", next);
+  }
+  function checkOut() {
+    if (!activeRecord) return alert("Du er ikke checket ind.");
+    const next = timeRecords.map(r => r.id === activeRecord.id ? { ...r, end: new Date().toISOString() } : r);
+    setTimeRecords(next); save("vagtplan-time-v12", next);
+  }
+  function deleteTime(id) {
+    if (!confirm("Slet tidsregistrering?")) return;
+    const next = timeRecords.filter(r => r.id !== id);
+    setTimeRecords(next); save("vagtplan-time-v12", next);
+  }
+  function addRequest(e) {
+    e.preventDefault();
+    const next = [{ id: Date.now(), employee: user.name, date: requestDate, note: requestText, status: "Afventer" }, ...requests];
+    setRequests(next); save("vagtplan-requests-v12", next);
+    setRequestDate(""); setRequestText("");
+  }
+  function updateRequest(id, status) {
+    const next = requests.map(r => r.id === id ? { ...r, status } : r);
+    setRequests(next); save("vagtplan-requests-v12", next);
+  }
+  function addSwap(e) {
+    e.preventDefault();
+    const next = [{ id: Date.now(), employee: user.name, target: swapTarget, note: swapNote, status: "Afventer" }, ...swaps];
+    setSwaps(next); save("vagtplan-swaps-v12", next);
+    setSwapNote("");
+  }
+  function updateSwap(id, status) {
+    const next = swaps.map(s => s.id === id ? { ...s, status } : s);
+    setSwaps(next); save("vagtplan-swaps-v12", next);
   }
 
-  const currentDayShifts = visibleEmployees.flatMap(emp => {
-    const shifts = plan[week.id]?.[emp.name]?.[dayInfo[0]] || ["FRI"];
-    return shifts.map((shift, index) => ({ emp, shift, index }));
-  }).filter(x => x.shift !== "FRI");
-  const employeeOptions = isAdmin ? employees : employees.filter(e => e.name === user.name);
+  const shownRequests = isAdmin ? requests : requests.filter(r => r.employee === user.name);
+  const shownSwaps = isAdmin ? swaps : swaps.filter(s => s.employee === user.name || s.target === user.name);
 
-  return (
-    <div className="app">
-      <header className="app-header">
-        <div>
-          <div className="brandline">🍕 Surdejspizzeria</div>
-          <h1>Vagtplan City</h1>
-          <p>{isAdmin ? "Admin demo" : "Medarbejder demo"} · {user.email}</p>
+  return <div className="app">
+    <header className="app-header">
+      <div><div className="brandline">🍕 Surdejspizzeria</div><h1>Vagtplan City</h1><p>{isAdmin ? "Admin demo" : "Medarbejder demo"} · {user.email}</p></div>
+      <div className="sync">
+        <span><Database size={16}/> {status}</span>
+        <button onClick={loadOnline}><DownloadCloud size={16}/> Hent</button>
+        {isAdmin && <button className="dark" onClick={saveOnline}><UploadCloud size={16}/> Gem online</button>}
+        <button onClick={logout}><LogOut size={16}/> Log ud</button>
+      </div>
+    </header>
+
+    <nav className="view-tabs">
+      <button className={view==="today"?"active":""} onClick={()=>setView("today")}><LayoutDashboard size={18}/> Dagens vagter</button>
+      <button className={view==="week"?"active":""} onClick={()=>setView("week")}><CalendarDays size={18}/> Uge</button>
+      <button className={view==="hours"?"active":""} onClick={()=>setView("hours")}><Clock size={18}/> Timer</button>
+      <button className={view==="requests"?"active":""} onClick={()=>setView("requests")}><Plane size={18}/> Friønsker</button>
+      <button className={view==="swaps"?"active":""} onClick={()=>setView("swaps")}><Repeat2 size={18}/> Vagtbytte</button>
+      <button className={view==="time"?"active":""} onClick={()=>setView("time")}><Timer size={18}/> Stempelur</button>
+    </nav>
+
+    {["today","week"].includes(view) && <section className="controls">
+      <select value={day} onChange={e=>setDay(e.target.value)}>
+        {days.map(([k,l,d]) => <option key={k} value={k}>{l} {d}</option>)}
+      </select>
+      <button onClick={()=>window.print()}><Printer size={16}/> Print</button>
+    </section>}
+
+    <main>
+      <div className="role-box">{isAdmin ? <ShieldCheck size={20}/> : <Eye size={20}/>} <span>V12: stempelur/tidsregistrering er aktiv.</span></div>
+
+      {view === "today" && <section className="panel">
+        <h2>Dagens vagter</h2>
+        <div className="today-list">
+          {visibleEmployees.map(emp => (plan[emp.name]?.[day] || ["FRI"]).filter(x=>x!=="FRI").map((shift,i) => {
+            const [time, role] = shift.split("\\n");
+            return <div className={"today-card " + emp.cls} key={emp.name+i}>
+              <div className="avatar">{emp.name[0]}</div><div><b>{emp.name}</b><span>{time}</span><small>{role}</small></div>
+            </div>
+          }))}
         </div>
-        <div className="sync">
-          <span><Database size={16}/> {status}</span>
-          <button onClick={loadOnline}><DownloadCloud size={16}/> Hent</button>
-          {isAdmin && <button className="dark" onClick={saveOnline}><UploadCloud size={16}/> Gem online</button>}
-          <button onClick={logout}><LogOut size={16}/> Log ud</button>
-        </div>
-      </header>
-
-      <nav className="view-tabs">
-        <button className={view==="today" ? "active" : ""} onClick={()=>setView("today")}><LayoutDashboard size={18}/> Dagens vagter</button>
-        <button className={view==="week" ? "active" : ""} onClick={()=>setView("week")}><CalendarDays size={18}/> Uge</button>
-        <button className={view==="employee" ? "active" : ""} onClick={()=>setView("employee")}><User size={18}/> Medarbejder</button>
-        <button className={view==="hours" ? "active" : ""} onClick={()=>setView("hours")}><Clock size={18}/> Timer</button>
-        <button className={view==="requests" ? "active" : ""} onClick={()=>setView("requests")}><Plane size={18}/> Friønsker</button>
-        <button className={view==="swaps" ? "active" : ""} onClick={()=>setView("swaps")}><Repeat2 size={18}/> Vagtbytte</button>
-      </nav>
-
-      {!["requests","swaps"].includes(view) && <section className="controls">
-        <select value={weekIndex} onChange={e=>setWeekIndex(Number(e.target.value))}>
-          {weeks.map((w,i)=><option key={w.id} value={i}>{w.title} – {w.period}</option>)}
-        </select>
-        <select value={dayKey} onChange={e=>setDayKey(e.target.value)}>
-          {week.days.map(([k,l,d])=><option key={k} value={k}>{l} {d}</option>)}
-        </select>
-        <button onClick={()=>window.print()}><Printer size={16}/> Print</button>
       </section>}
 
-      <main>
-        <div className="role-box">
-          {isAdmin ? <ShieldCheck size={20}/> : <Eye size={20}/>}
-          <span>{isAdmin ? "Admin kan se/redigere alle vagter, friønsker og vagtbytte." : "Medarbejder ser egne vagter og kan sende friønsker/vagtbytte."}</span>
+      {view === "week" && <section className="panel">
+        <h2>Ugeoversigt</h2>
+        <div className="week-grid">
+          {days.map(([k,l,d]) => <div className="day-card" key={k}><h3>{l} <span>{d}</span></h3>
+            {visibleEmployees.map(emp => (plan[emp.name]?.[k] || ["FRI"]).filter(x=>x!=="FRI").map((shift,i)=><div className={"mini-shift "+emp.cls} key={emp.name+i}><b>{emp.name}</b><span>{shift.split("\\n")[0]}</span></div>))}
+          </div>)}
         </div>
+      </section>}
 
-        {view === "today" && <section className="panel">
-          <div className="panel-title"><ListChecks size={22}/><div><h2>{dayInfo[1]} {dayInfo[2]}</h2><p>{isAdmin ? "Alle dagens vagter" : "Dine vagter denne dag"}</p></div></div>
-          <div className="today-list">
-            {currentDayShifts.length ? currentDayShifts.map((item,i)=>{
-              const s = splitShift(item.shift);
-              return <button key={i} className={"today-card "+item.emp.cls} onClick={()=>openEdit(item.emp.name, week.id, dayInfo[0], item.index, item.shift)}>
-                <div className="avatar">{item.emp.name[0]}</div><div><b>{item.emp.name}</b><span>{s.time}</span><small>{s.role}</small></div><Pencil size={16}/>
-              </button>
-            }) : <p>Ingen vagter denne dag.</p>}
-          </div>
-        </section>}
+      {view === "hours" && <section className="panel">
+        <h2>Timer & saldo</h2>
+        <div className="hours-grid">
+          {visibleEmployees.map(emp => {
+            const planned = Object.values(plan[emp.name] || {}).flat().reduce((s,v)=>s+parseShiftHours(v),0);
+            return <div className="hour-card" key={emp.name}><div className={"avatar "+emp.cls}>{emp.name[0]}</div><h3>{emp.name}</h3><p>Planlagt uge: <b>{planned.toFixed(1)} t</b></p><p>Mål: {emp.weekly} t</p></div>
+          })}
+        </div>
+      </section>}
 
-        {view === "week" && <section className="panel">
-          <h2>{week.title} – {week.period}</h2>
-          <div className="week-grid">
-            {week.days.map(([k,l,d]) => <div className="day-card" key={k}>
-              <h3>{l} <span>{d}</span></h3>
-              {visibleEmployees.map(emp => (plan[week.id]?.[emp.name]?.[k] || ["FRI"]).filter(x=>x!=="FRI").map((shift,index) => {
-                const s = splitShift(shift);
-                return <button key={emp.name+index} className={"mini-shift "+emp.cls} onClick={()=>openEdit(emp.name, week.id, k, index, shift)}><b>{emp.name}</b><span>{s.time}</span></button>
-              }))}
-            </div>)}
+      {view === "time" && <section className="panel">
+        <h2>Stempelur / tidsregistrering</h2>
+        {!isAdmin && <div className="timeclock-box">
+          <b>Status: {activeRecord ? "Checket ind" : "Ikke checket ind"}</b>
+          {activeRecord && <p>Start: {format(activeRecord.start)}</p>}
+          <div className="time-actions">
+            <button className="dark" disabled={!!activeRecord} onClick={checkIn}><PlayCircle size={18}/> Check ind</button>
+            <button className="danger" disabled={!activeRecord} onClick={checkOut}><StopCircle size={18}/> Check ud</button>
           </div>
-        </section>}
+        </div>}
+        <div className="time-summary"><b>Registreret tid</b><span>Total: {totalTime.toFixed(2)} timer</span></div>
+        <div className="request-list">
+          {visibleTime.length ? visibleTime.map(r => <div className="request-card" key={r.id}><div><b>{r.employee}</b><span>{r.date}</span><p>Start: {format(r.start)}</p><p>Slut: {format(r.end)}</p><p><b>{hours(r).toFixed(2)} timer</b></p></div>{isAdmin && <button className="danger" onClick={()=>deleteTime(r.id)}><Trash2 size={16}/> Slet</button>}</div>) : <p>Ingen tidsregistreringer endnu.</p>}
+        </div>
+      </section>}
 
-        {view === "employee" && <section className="panel">
-          <div className="employee-head">
-            <select value={selectedEmployee} onChange={e=>setSelectedEmployee(e.target.value)} disabled={!isAdmin}>
-              {employeeOptions.map(e=><option key={e.name}>{e.name}</option>)}
-            </select>
-            <b>{empHours(plan, selectedEmployee).toFixed(1)} timer i perioden</b>
-          </div>
-          <div className="employee-list">
-            {weeks.map(w => w.days.map(([k,l,d]) => (plan[w.id]?.[selectedEmployee]?.[k] || ["FRI"]).map((shift,index) => (
-              <button key={w.id+k+index} className="employee-shift" onClick={()=>openEdit(selectedEmployee, w.id, k, index, shift)}><span>{w.title} · {l} {d}</span><b>{shift}</b></button>
-            ))))}
-          </div>
-        </section>}
+      {view === "requests" && <section className="panel">
+        <h2>Friønsker</h2>
+        {!isAdmin && <form className="request-form" onSubmit={addRequest}><label>Dato</label><input type="date" value={requestDate} onChange={e=>setRequestDate(e.target.value)} required/><label>Kommentar</label><textarea value={requestText} onChange={e=>setRequestText(e.target.value)} /><button className="dark">Send friønske</button></form>}
+        <div className="request-list">{shownRequests.length ? shownRequests.map(r=><div className="request-card" key={r.id}><div><b>{r.employee}</b><span>{r.date}</span><p>{r.note}</p></div><strong>{r.status}</strong>{isAdmin && <div className="request-actions"><button onClick={()=>updateRequest(r.id,"Godkendt")}>Godkend</button><button onClick={()=>updateRequest(r.id,"Afvist")}>Afvis</button></div>}</div>) : <p>Ingen friønsker.</p>}</div>
+      </section>}
 
-        {view === "hours" && <section className="panel">
-          <h2>Timer & saldo</h2>
-          <div className="hours-grid">
-            {summary.map(e => <div className="hour-card" key={e.name}><div className={"avatar "+e.cls}>{e.name[0]}</div><h3>{e.name}</h3><p>Planlagt: <b>{e.total.toFixed(1)} t</b></p><p>Mål ca.: {e.weekly * (31/7).toFixed?.()}</p><strong>{e.diff?.toFixed?.(1)} t</strong></div>)}
-          </div>
-        </section>}
-
-        {view === "requests" && <section className="panel">
-          <div className="panel-title"><Plane size={22}/><div><h2>Friønsker / ferieønsker</h2><p>{isAdmin ? "Godkend eller afvis medarbejdernes ønsker" : "Send ønske om fri til manager"}</p></div></div>
-          {!isAdmin && <form className="request-form" onSubmit={addRequest}>
-            <label>Dato</label><input type="date" value={requestForm.date} onChange={e=>setRequestForm({...requestForm, date:e.target.value})} />
-            <label>Type</label><select value={requestForm.type} onChange={e=>setRequestForm({...requestForm, type:e.target.value})}><option>Fri</option><option>Ferie</option><option>Bytte vagt</option></select>
-            <label>Kommentar</label><textarea rows="3" value={requestForm.note} onChange={e=>setRequestForm({...requestForm, note:e.target.value})} placeholder="Skriv evt. hvorfor..." />
-            <button className="dark"><Plane size={16}/> Send friønske</button>
-          </form>}
-          <div className="request-list">
-            {visibleRequests.length ? visibleRequests.map(r => <div className="request-card" key={r.id}>
-              <div><b>{r.employee}</b><span>{r.type} · {r.date}</span><p>{r.note || "Ingen kommentar"}</p></div>
-              <strong className={r.status === "Godkendt" ? "approved" : r.status === "Afvist" ? "rejected" : "pending"}>{r.status}</strong>
-              {isAdmin && <div className="request-actions"><button onClick={()=>updateRequest(r.id,"Godkendt")}><CheckCircle2 size={16}/> Godkend</button><button onClick={()=>updateRequest(r.id,"Afvist")}><XCircle size={16}/> Afvis</button><button className="danger" onClick={()=>deleteRequest(r.id)}>Slet</button></div>}
-            </div>) : <p>Ingen friønsker endnu.</p>}
-          </div>
-        </section>}
-
-        {view === "swaps" && <section className="panel">
-          <div className="panel-title"><Repeat2 size={22}/><div><h2>Vagtbytte</h2><p>{isAdmin ? "Se og godkend vagtbytte" : "Foreslå bytte af en af dine vagter"}</p></div></div>
-          {!isAdmin && <form className="request-form" onSubmit={addSwap}>
-            <label>Uge</label><select value={swapForm.weekId} onChange={e=>setSwapForm({...swapForm, weekId:e.target.value})}>{weeks.map(w => <option key={w.id} value={w.id}>{w.title} – {w.period}</option>)}</select>
-            <label>Dag</label><select value={swapForm.day} onChange={e=>setSwapForm({...swapForm, day:e.target.value, shiftIndex:0})}>{swapDays.map(([k,l,d]) => <option key={k} value={k}>{l} {d}</option>)}</select>
-            <label>Din vagt</label><select value={swapForm.shiftIndex} onChange={e=>setSwapForm({...swapForm, shiftIndex:e.target.value})}>{ownShiftsForSwap.length ? ownShiftsForSwap.map((s,i)=><option key={i} value={i}>{s}</option>) : <option>Ingen vagt</option>}</select>
-            <label>Ønsker at bytte med</label><select value={swapForm.targetEmployee} onChange={e=>setSwapForm({...swapForm, targetEmployee:e.target.value})}>{targetOptions.map(e => <option key={e.name}>{e.name}</option>)}</select>
-            <label>Kommentar</label><textarea rows="3" value={swapForm.note} onChange={e=>setSwapForm({...swapForm, note:e.target.value})} placeholder="Skriv evt. hvorfor..." />
-            <button className="dark"><Repeat2 size={16}/> Send vagtbytte</button>
-          </form>}
-          <div className="request-list">
-            {visibleSwaps.length ? visibleSwaps.map(s => <div className="request-card" key={s.id}>
-              <div><b>{s.employee} → {s.targetEmployee}</b><span>{findWeekDayLabel(s.weekId, s.day)}</span><p><b>Vagt:</b> {s.shift}</p><p>{s.note || "Ingen kommentar"}</p></div>
-              <strong className={s.status === "Godkendt" ? "approved" : s.status === "Afvist" ? "rejected" : "pending"}>{s.status}</strong>
-              {!isAdmin && s.targetEmployee === user.name && s.targetStatus === "Afventer" && <div className="request-actions"><button onClick={()=>updateSwap(s.id,{targetStatus:"Accepteret"})}><CheckCircle2 size={16}/> Accepter</button><button onClick={()=>updateSwap(s.id,{targetStatus:"Afvist", status:"Afvist"})}><XCircle size={16}/> Afvis</button></div>}
-              {isAdmin && <div className="request-actions"><button onClick={()=>updateSwap(s.id,{status:"Godkendt"})}><CheckCircle2 size={16}/> Godkend</button><button onClick={()=>updateSwap(s.id,{status:"Afvist"})}><XCircle size={16}/> Afvis</button><button className="danger" onClick={()=>deleteSwap(s.id)}>Slet</button><span className="small-label">Modpart: {s.targetStatus}</span></div>}
-            </div>) : <p>Ingen vagtbytte endnu.</p>}
-          </div>
-        </section>}
-      </main>
-
-      {edit && <div className="modalbg"><div className="modal">
-        <h2>Rediger vagt</h2><p><b>{edit.emp}</b></p>
-        <textarea rows="5" value={text} onChange={e=>setText(e.target.value)} />
-        <p>Skriv fx: 16:00–21:00 på første linje. Skriv FRI for fridag.</p>
-        <div className="actions"><button className="danger" onClick={deleteShift}>Slet</button><button onClick={()=>setEdit(null)}>Annuller</button><button className="dark" onClick={saveEdit}>Gem</button></div>
-      </div></div>}
-    </div>
-  );
+      {view === "swaps" && <section className="panel">
+        <h2>Vagtbytte</h2>
+        {!isAdmin && <form className="request-form" onSubmit={addSwap}><label>Byt med</label><select value={swapTarget} onChange={e=>setSwapTarget(e.target.value)}>{employees.filter(e=>e.name!==user.name).map(e=><option key={e.name}>{e.name}</option>)}</select><label>Kommentar</label><textarea value={swapNote} onChange={e=>setSwapNote(e.target.value)} /><button className="dark">Send vagtbytte</button></form>}
+        <div className="request-list">{shownSwaps.length ? shownSwaps.map(s=><div className="request-card" key={s.id}><div><b>{s.employee} → {s.target}</b><p>{s.note}</p></div><strong>{s.status}</strong>{isAdmin && <div className="request-actions"><button onClick={()=>updateSwap(s.id,"Godkendt")}>Godkend</button><button onClick={()=>updateSwap(s.id,"Afvist")}>Afvis</button></div>}</div>) : <p>Ingen vagtbytte.</p>}</div>
+      </section>}
+    </main>
+  </div>
 }
 
 createRoot(document.getElementById("root")).render(<App />);

@@ -1,11 +1,11 @@
-# Surdejspizzeria Vagtplan V11 Vagtbytte
+# Surdejspizzeria Vagtplan V12 Tidsregistrering
 
 Nyt:
-- Vagtbytte
-- Medarbejder kan foreslå bytte
-- Modpart kan acceptere/afvise
-- Admin kan godkende/afvise/slette
-- Friønsker og demo-login virker stadig
+- Stempelur / tidsregistrering
+- Medarbejder kan checke ind og checke ud
+- Admin kan se og slette tidsregistreringer
+- Automatisk beregning af registrerede timer
+- Vagtplan, friønsker og vagtbytte bevares i lettere version
 
 Demo:
 admin@surdejspizza.demo / demo123
